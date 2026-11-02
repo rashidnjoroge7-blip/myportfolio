@@ -30,7 +30,7 @@ export default function ImageUploadField({ initialValue = "" }: { initialValue?:
     <label className="block text-sm font-medium">Cover image URL
       <input name="image_url" type="url" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://..." className="mt-2 w-full rounded-xl border border-[var(--card-border)] bg-[var(--bg)] px-4 py-3" />
     </label>
-    <label className="mt-3 block text-sm font-medium">Or upload an image (JPEG, PNG, WebP, AVIF; max 5 MB)
+    <label className="mt-3 block text-sm font-medium">Or upload an image (JPEG, PNG, WebP, AVIF; max 4 MB)
       <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={busy} onChange={(event) => void upload(event.target.files?.[0])} className="mt-2 block w-full text-sm" />
     </label>
     {busy && <p className="mt-2 text-sm text-[var(--muted)]">Uploading image…</p>}

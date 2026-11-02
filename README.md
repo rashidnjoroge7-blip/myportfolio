@@ -1,51 +1,18 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MyPortfolio
 
-## Getting Started
+Next.js portfolio hosted on Vercel. Its private project CMS uses Supabase PostgreSQL and Supabase Storage.
 
-First, run the development server:
+## Admin dashboard setup
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. Create a Supabase project at https://supabase.com and run `supabase/migrations/20261102000000_create_projects.sql` in SQL Editor.
+2. Configure Google OAuth. Add `http://localhost:3000/api/auth/callback/google` for local development and `https://YOUR-VERCEL-DOMAIN/api/auth/callback/google` for production.
+3. Copy `.env.example` to `.env.local` and set `NEXTAUTH_URL`, a strong random `NEXTAUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ADMIN_EMAILS`, `NEXT_PUBLIC_SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY`.
+4. Add the same variables in Vercel Project Settings → Environment Variables. Never expose the Supabase service-role key with a `NEXT_PUBLIC_*` prefix or commit it.
+5. Run `npm install` then `npm run dev`; open `/admin`, sign in with an allowlisted Google account, and add projects. Projects are drafts by default; only published projects appear on `/projects`.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Security
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Environment Variables
-
-This app supports the following environment variables for email delivery and reCAPTCHA verification:
-
-- `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` — public site key used in the browser
-- `RECAPTCHA_SECRET_KEY` — server secret key used by the backend
-- `SMTP_HOST` — SMTP hostname for sending email
-- `SMTP_PORT` — SMTP port, typically `587` or `465`
-- `SMTP_USER` — SMTP username
-- `SMTP_PASS` — SMTP password
-- `EMAIL_TO` — email address that receives contact and quote messages
-- `EMAIL_FROM` — sender email address for outgoing messages
-
-Create a `.env` file from `.env.example` and add the required values before running or deploying the app.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Admin access uses a server-side `ADMIN_EMAILS` allowlist and is checked on admin pages, server actions, and image uploads.
+- Supabase Row Level Security is enabled; browser clients never receive the service-role key.
+- The `project-images` bucket is public-read for portfolio rendering. Uploads are server-side, admin-only, MIME-type checked, and limited to 5 MB.
+- Existing hardcoded projects remain a fallback until Supabase is configured. They are not automatically imported; add verified projects in the dashboard.

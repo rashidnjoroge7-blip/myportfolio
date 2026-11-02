@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   const allowed = new Map([["image/jpeg", "jpg"], ["image/png", "png"], ["image/webp", "webp"], ["image/avif", "avif"]]);
   const extension = allowed.get(file.type);
   if (!extension) return NextResponse.json({ error: "Use JPEG, PNG, WebP, or AVIF." }, { status: 400 });
-  if (file.size < 1 || file.size > 5 * 1024 * 1024) return NextResponse.json({ error: "Image must be 5 MB or smaller." }, { status: 400 });
+  if (file.size < 1 || file.size > 4 * 1024 * 1024) return NextResponse.json({ error: "Image must be 4 MB or smaller." }, { status: 400 });
 
   const supabase = getSupabaseAdmin();
   const key = `${crypto.randomUUID()}.${extension}`;

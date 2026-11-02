@@ -22,7 +22,7 @@ alter table public.projects enable row level security;
 
 -- Only the server-side service-role client can access project rows. Never expose that key in browser code.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('project-images', 'project-images', true, 5242880, array['image/jpeg','image/png','image/webp','image/avif'])
+values ('project-images', 'project-images', true, 4194304, array['image/jpeg','image/png','image/webp','image/avif'])
 on conflict (id) do update set public = excluded.public, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
 
 drop policy if exists "Public can view project images" on storage.objects;

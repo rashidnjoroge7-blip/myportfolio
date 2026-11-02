@@ -14,5 +14,5 @@ Next.js portfolio hosted on Vercel. Its private project CMS uses Supabase Postgr
 
 - Admin access uses a server-side `ADMIN_EMAILS` allowlist and is checked on admin pages, server actions, and image uploads.
 - Supabase Row Level Security is enabled; browser clients never receive the service-role key.
-- The `project-images` bucket is public-read for portfolio rendering. Uploads are server-side, admin-only, MIME-type checked, and limited to 5 MB.
+- The `project-images` bucket is public-read for portfolio rendering. Uploads are server-side, admin-only, MIME-type checked, and limited to 4 MB.
 - Existing hardcoded projects remain a fallback until Supabase is configured. They are not automatically imported; add verified projects in the dashboard.

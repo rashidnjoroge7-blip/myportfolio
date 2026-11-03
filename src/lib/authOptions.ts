@@ -21,7 +21,8 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
     async signIn({ user, profile }) {
-      const email = user.email ?? (profile as { email?: string } | undefined)?.email;
+      const email =
+        user.email ?? (profile as { email?: string } | undefined)?.email;
       return isAdminEmail(email);
     },
     async session({ session, token }) {
@@ -29,5 +30,4 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-  pages: { signIn: "/admin/login" },
 };

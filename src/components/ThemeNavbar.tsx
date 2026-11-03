@@ -34,7 +34,8 @@ export default function ThemeNavbar() {
     const handleScroll = () => {
       const doc = document.documentElement;
       const scrollHeight = doc.scrollHeight - window.innerHeight;
-      const progress = scrollHeight > 0 ? (window.scrollY / scrollHeight) * 100 : 0;
+      const progress =
+        scrollHeight > 0 ? (window.scrollY / scrollHeight) * 100 : 0;
       setScrollProgress(Math.min(100, Math.max(0, progress)));
     };
 
@@ -54,15 +55,16 @@ export default function ThemeNavbar() {
 
       <nav className="sticky top-0 z-40 bg-[var(--surface)]/95 backdrop-blur-sm border-b border-[var(--card-border)] transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2">
-            <Image
-              src="/logo.png"
-              alt="Logo"
-              width={40}
-              height={40}
-              className="h-10 w-auto"
-              priority
-            />
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="relative h-10 w-10 overflow-hidden rounded-lg bg-[var(--surface-alt)] shadow-sm transition-transform group-hover:scale-105">
+              <Image
+                src="/logo.svg"
+                alt="Unihost Technologies Logo"
+                fill
+                className="object-cover p-1"
+                priority
+              />
+            </div>
             <span className="text-xl font-bold bg-gradient-to-r from-[var(--accent-3)] to-[var(--accent-2)] bg-clip-text text-transparent">
               UniHost Technologies
             </span>
@@ -86,7 +88,9 @@ export default function ThemeNavbar() {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => setTheme((value) => (value === "dark" ? "light" : "dark"))}
+              onClick={() =>
+                setTheme((value) => (value === "dark" ? "light" : "dark"))
+              }
               className="rounded-full border border-[var(--card-border)] bg-[var(--surface-alt)] p-2 text-[var(--text)] shadow-sm transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
               aria-label="Toggle theme"
             >
@@ -103,7 +107,9 @@ export default function ThemeNavbar() {
           </div>
         </div>
 
-        <div className={`md:hidden overflow-hidden transition-[max-height] duration-300 ${menuOpen ? "max-h-64" : "max-h-0"}`}>
+        <div
+          className={`md:hidden overflow-hidden transition-[max-height] duration-300 ${menuOpen ? "max-h-64" : "max-h-0"}`}
+        >
           <div className="space-y-2 border-t border-[var(--card-border)] bg-[var(--surface-alt)] px-6 py-4">
             {navItems.map((item) => (
               <Link

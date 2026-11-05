@@ -1,15 +1,25 @@
-import nodemailer from "nodemailer";
+﻿import nodemailer from "nodemailer";
 import { siteConfig } from "./siteConfig";
 
 type EmailOptions = {
+  to?: string;
   subject: string;
   text: string;
   html: string;
 };
 
-const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, EMAIL_TO, EMAIL_FROM } = process.env;
+const {
+  SMTP_HOST,
+  SMTP_PORT,
+  SMTP_USER,
+  SMTP_PASS,
+  EMAIL_TO,
+  EMAIL_FROM,
+} = process.env;
 
-const isSmtpConfigured = Boolean(SMTP_HOST && SMTP_PORT && SMTP_USER && SMTP_PASS);
+const isSmtpConfigured = Boolean(
+  SMTP_HOST && SMTP_PORT && SMTP_USER && SMTP_PASS
+);
 
 async function createTransport() {
   if (!isSmtpConfigured) {
@@ -32,14 +42,16 @@ export async function sendEmail(options: EmailOptions) {
 
   const message = {
     from: EMAIL_FROM || SMTP_USER || "no-reply@example.com",
-    to: EMAIL_TO || siteConfig.email || "hello@example.com",
+    to: options.to || EMAIL_TO || siteConfig.email || "hello@example.com",
     subject: options.subject,
     text: options.text,
     html: options.html,
   };
 
   if (!transport) {
-    console.warn("[email] SMTP is not configured. Falling back to console output.");
+    console.warn(
+      "[email] SMTP is not configured. Falling back to console output."
+    );
     console.log(message);
     return;
   }

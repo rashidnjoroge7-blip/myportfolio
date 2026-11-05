@@ -22,6 +22,18 @@ function readProject(formData: FormData) {
 export async function saveProject(formData: FormData) {
   await requireAdmin();
   const parsed = readProject(formData);
+
+if (!parsed.success) {
+  console.error(
+    "PROJECT VALIDATION ERRORS:",
+    parsed.error.issues.map((issue) => ({
+      field: issue.path.join("."),
+      message: issue.message,
+    }))
+  );
+
+  redirect("/admin/projects/new?error=validation");
+}
   if (!parsed.success) redirect("/admin/projects/new?error=validation");
   const id = String(formData.get("id") ?? "").trim();
   const supabase = getSupabaseAdmin();

@@ -58,9 +58,10 @@ export default function ThemeNavbar() {
           <Link href="/" className="flex items-center gap-2 group">
             <div className="relative h-10 w-10 overflow-hidden rounded-lg bg-[var(--surface-alt)] shadow-sm transition-transform group-hover:scale-105">
               <Image
-                src="/logo.svg"
-                alt="Unihost Technologies Logo"
+                src="/logo.png"
+                alt="UniHost Technologies Logo"
                 fill
+                sizes="(max-width: 768px) 120px, 160px"
                 className="object-cover p-1"
                 priority
               />

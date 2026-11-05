@@ -8,7 +8,7 @@ export async function requireAdmin() {
 
   // If not signed in OR not an admin, send to NextAuth sign-in page
   if (!session?.user?.email || !isAdminEmail(session.user.email)) {
-    redirect("/api/auth/signin");
+    redirect("/admin/login");
   }
 
   return session;

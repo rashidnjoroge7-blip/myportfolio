@@ -1,0 +1,135 @@
+"use client";
+
+import { useState, type FormEvent } from "react";
+import { signIn } from "next-auth/react";
+
+export default function AdminLoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+        callbackUrl: "/admin",
+      });
+
+      if (result?.error) {
+        setError("Invalid administrator email or password.");
+        setLoading(false);
+        return;
+      }
+
+      window.location.href = result?.url ?? "/admin";
+    } catch {
+      setError("Unable to sign in. Please try again.");
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-12">
+      {" "}
+      <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-8 shadow-2xl">
+        {" "}
+        <div className="mb-8 text-center">
+          {" "}
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-blue-600 text-2xl font-bold text-white">
+            A{" "}
+          </div>
+          ```
+          <h1 className="text-2xl font-bold text-white">Administrator Login</h1>
+          <p className="mt-2 text-sm text-slate-400">
+            Sign in to access your portfolio dashboard.
+          </p>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label
+              htmlFor="email"
+              className="mb-2 block text-sm font-medium text-slate-300"
+            >
+              Administrator Email
+            </label>
+
+            <input
+              id="email"
+              type="email"
+              autoComplete="username"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="admin@example.com"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="password"
+              className="mb-2 block text-sm font-medium text-slate-300"
+            >
+              Password
+            </label>
+
+            <input
+              id="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-blue-500"
+            />
+          </div>
+
+          {error && (
+            <div
+              role="alert"
+              className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400"
+            >
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
+          >
+            {loading ? "Signing in..." : "Sign In"}
+          </button>
+        </form>
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-700" />
+          </div>
+
+          <div className="relative flex justify-center">
+            <span className="bg-slate-900 px-3 text-sm text-slate-500">OR</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => signIn("google", { callbackUrl: "/admin" })}
+          className="flex w-full items-center justify-center gap-3 rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 font-medium text-white transition hover:bg-slate-700"
+        >
+          <span className="text-lg font-bold">G</span>
+          Continue with Google
+        </button>
+        <p className="mt-8 text-center text-xs text-slate-500">
+          Protected Administrator Area
+        </p>
+      </div>
+    </main>
+  );
+}

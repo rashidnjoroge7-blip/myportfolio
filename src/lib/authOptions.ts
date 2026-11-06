@@ -41,27 +41,32 @@ export const authOptions: NextAuthOptions = {
           ? Buffer.from(encodedHash, "base64").toString("utf8")
           : process.env.ADMIN_PASSWORD_HASH;
 
-        if (!email || !password || !passwordHash) {
-          return null;
-        }
+        const emailAllowed = isAdminEmail(email);
 
-        if (!isAdminEmail(email)) {
-          return null;
-        }
-
-        const validHash = /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(
-          passwordHash,
+        const hashFormatValid = Boolean(
+          passwordHash &&
+          /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(passwordHash),
         );
 
-        if (!validHash) {
-          return null;
-        }
+        console.info("ADMIN_AUTH_DIAGNOSTIC", {
+          emailPresent: Boolean(email),
+          emailAllowed,
+          passwordPresent: Boolean(password),
+          hashPresent: Boolean(passwordHash),
+          hashLength: passwordHash?.length ?? 0,
+          hashFormatValid,
+        });
 
-        const validPassword = await bcrypt.compare(password, passwordHash);
+        if (!email || !password || !passwordHash) return null;
+        if (!emailAllowed || !hashFormatValid) return null;
 
-        if (!validPassword) {
-          return null;
-        }
+        const passwordMatches = await bcrypt.compare(password, passwordHash);
+
+        console.info("ADMIN_AUTH_PASSWORD_CHECK", {
+          passwordMatches,
+        });
+
+        if (!passwordMatches) return null;
 
         return {
           id: email,

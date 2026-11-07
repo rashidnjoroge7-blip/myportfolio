@@ -1,0 +1,209 @@
+// src/app/client/dashboard/page.tsx
+
+import { redirect } from "next/navigation";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+
+async function getServerSupabase() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Missing Supabase environment variables.");
+  }
+
+  const cookieStore = await cookies();
+
+  return createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+          });
+        } catch {
+          // Cookie updates may not be available in Server Components.
+        }
+      },
+    },
+  });
+}
+
+// Sign out Server Action
+async function signOutAction() {
+  "use server";
+
+  const supabase = await getServerSupabase();
+
+  await supabase.auth.signOut();
+
+  redirect("/client/login");
+}
+
+// Client Dashboard
+export default async function ClientDashboardPage() {
+  const supabase = await getServerSupabase();
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user || !user.email) {
+    redirect("/client/login");
+  }
+
+  // Fetch client projects
+  const { data: projects, error: projectsError } = await supabase
+    .from("client_projects")
+    .select(
+      `
+      id,
+      title,
+      status,
+      created_at,
+      milestones (
+        id,
+        title,
+        status,
+        due_date
+      )
+    `,
+    )
+    .eq("client_email", user.email)
+    .order("created_at", { ascending: false });
+
+  return (
+    <main className="min-h-screen bg-[var(--bg)] px-6 py-12">
+      <div className="mx-auto max-w-6xl">
+        {/* Header */}
+        <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-4xl font-bold text-[var(--text)]">
+              My Projects
+            </h1>
+
+            <p className="mt-2 text-[var(--muted)]">
+              Signed in as {user.email}
+            </p>
+          </div>
+
+          <form action={signOutAction}>
+            <button type="submit" className="btn-secondary">
+              Sign Out
+            </button>
+          </form>
+        </div>
+
+        {/* Database Error */}
+        {projectsError ? (
+          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6">
+            <h2 className="font-semibold text-red-500">
+              Unable to load your projects
+            </h2>
+
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              Please try again later or contact the administrator.
+            </p>
+          </div>
+        ) : projects && projects.length > 0 ? (
+          /* Projects */
+          <div className="space-y-6">
+            {projects.map((project) => (
+              <div
+                key={project.id}
+                className="rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] p-6"
+              >
+                {/* Project Details */}
+                <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h2 className="text-2xl font-semibold text-[var(--text)]">
+                      {project.title}
+                    </h2>
+
+                    <p className="mt-2 text-sm text-[var(--muted)]">
+                      Created{" "}
+                      {new Date(project.created_at).toLocaleDateString(
+                        "en-KE",
+                        {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        },
+                      )}
+                    </p>
+                  </div>
+
+                  <span className="w-fit rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-3 py-1 text-sm font-medium capitalize text-[var(--accent)]">
+                    {project.status}
+                  </span>
+                </div>
+
+                {/* Milestones */}
+                <div className="border-t border-[var(--card-border)] pt-5">
+                  <h3 className="mb-4 text-lg font-semibold text-[var(--text)]">
+                    Project Milestones
+                  </h3>
+
+                  {project.milestones && project.milestones.length > 0 ? (
+                    <div className="space-y-3">
+                      {project.milestones.map((milestone) => (
+                        <div
+                          key={milestone.id}
+                          className="flex flex-col gap-2 rounded-xl bg-[var(--surface-alt)] p-4 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                          <div>
+                            <p className="font-medium text-[var(--text)]">
+                              {milestone.title}
+                            </p>
+
+                            {milestone.due_date && (
+                              <p className="mt-1 text-xs text-[var(--muted)]">
+                                Due:{" "}
+                                {new Date(
+                                  milestone.due_date,
+                                ).toLocaleDateString("en-KE", {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
+                              </p>
+                            )}
+                          </div>
+
+                          <span className="w-fit rounded-md bg-[var(--surface)] px-3 py-1 text-xs font-medium capitalize text-[var(--muted)]">
+                            {milestone.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-[var(--muted)]">
+                      No milestones have been added yet.
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          /* Empty State */
+          <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] p-12 text-center">
+            <h2 className="text-xl font-semibold text-[var(--text)]">
+              No Projects Found
+            </h2>
+
+            <p className="mt-3 text-[var(--muted)]">
+              You do not have any projects assigned to your account yet. Check
+              back soon!
+            </p>
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}

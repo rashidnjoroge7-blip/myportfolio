@@ -1,8 +1,10 @@
-'use client';
+"use client";
 
-import { useRef, useState } from 'react';
-import { siteConfig } from '../../lib/siteConfig';
-import { useRecaptcha } from '../../lib/useRecaptcha';
+import { useEffect, useRef, useState } from "react";
+import type { ChangeEvent, FocusEvent, FormEvent } from "react";
+
+import { siteConfig } from "../../lib/siteConfig";
+import { useRecaptcha } from "../../lib/useRecaptcha";
 
 type FormErrors = {
   name?: string;
@@ -11,49 +13,87 @@ type FormErrors = {
   message?: string;
 };
 
+type ContactFormData = {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+};
+
+const initialFormData: ContactFormData = {
+  name: "",
+  email: "",
+  subject: "",
+  message: "",
+};
+
 export default function Contact() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    subject: '',
-    message: '',
-  });
+  const [formData, setFormData] = useState<ContactFormData>(initialFormData);
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
-  const [botField, setBotField] = useState('');
-  const formStartRef = useRef(Date.now());
-  const { enabled: captchaEnabled, ready: captchaReady, loadError: captchaLoadError, getToken } = useRecaptcha();
+  const [submitError, setSubmitError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [botField, setBotField] = useState("");
 
+  const formStartRef = useRef<number>(0);
+
+  // Record form initialization time.
+  useEffect(() => {
+    formStartRef.current = Date.now();
+  }, []);
+
+  const {
+    enabled: captchaEnabled,
+    ready: captchaReady,
+    loadError: captchaLoadError,
+    getToken,
+  } = useRecaptcha();
+
+  // Validate individual fields.
   const validateField = (name: string, value: string): string => {
     switch (name) {
-      case 'name':
-        if (!value.trim()) return 'Name is required';
-        if (value.trim().length < 2) return 'Name must be at least 2 characters';
-        return '';
-      case 'email':
-        if (!value.trim()) return 'Email is required';
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Please enter a valid email';
-        return '';
-      case 'subject':
-        if (!value.trim()) return 'Subject is required';
-        if (value.trim().length < 3) return 'Subject must be at least 3 characters';
-        return '';
-      case 'message':
-        if (!value.trim()) return 'Message is required';
-        if (value.trim().length < 10) return 'Message must be at least 10 characters';
-        return '';
+      case "name":
+        if (!value.trim()) return "Name is required";
+        if (value.trim().length < 2) {
+          return "Name must be at least 2 characters";
+        }
+        return "";
+
+      case "email":
+        if (!value.trim()) return "Email is required";
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          return "Please enter a valid email";
+        }
+        return "";
+
+      case "subject":
+        if (!value.trim()) return "Subject is required";
+        if (value.trim().length < 3) {
+          return "Subject must be at least 3 characters";
+        }
+        return "";
+
+      case "message":
+        if (!value.trim()) return "Message is required";
+        if (value.trim().length < 10) {
+          return "Message must be at least 10 characters";
+        }
+        return "";
+
       default:
-        return '';
+        return "";
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  // Handle field changes.
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     const { name, value } = e.target;
+
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -61,6 +101,7 @@ export default function Contact() {
 
     if (touched[name]) {
       const error = validateField(name, value);
+
       setErrors((prev) => ({
         ...prev,
         [name]: error,
@@ -68,33 +109,51 @@ export default function Contact() {
     }
   };
 
-  const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  // Validate fields when focus leaves them.
+  const handleBlur = (
+    e: FocusEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     const { name, value } = e.target;
+
     setTouched((prev) => ({
       ...prev,
       [name]: true,
     }));
 
     const error = validateField(name, value);
+
     setErrors((prev) => ({
       ...prev,
       [name]: error,
     }));
   };
 
+  // Validate the entire form.
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
+
     Object.keys(formData).forEach((key) => {
-      const error = validateField(key, formData[key as keyof typeof formData]);
-      if (error) newErrors[key as keyof FormErrors] = error;
+      const error = validateField(key, formData[key as keyof ContactFormData]);
+
+      if (error) {
+        newErrors[key as keyof FormErrors] = error;
+      }
     });
+
     setErrors(newErrors);
+
+    setTouched((prev) => ({
+      ...prev,
+      ...Object.fromEntries(Object.keys(formData).map((key) => [key, true])),
+    }));
+
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  // Submit contact message.
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setSubmitError('');
+    setSubmitError("");
 
     if (!validateForm()) {
       return;
@@ -102,28 +161,36 @@ export default function Contact() {
 
     setSubmitting(true);
 
-    let captchaToken = '';
+    let captchaToken = "";
+
+    // reCAPTCHA verification.
     if (captchaEnabled) {
       if (!captchaReady) {
-        setSubmitError('reCAPTCHA is still loading. Please wait a moment and try again.');
+        setSubmitError(
+          "reCAPTCHA is still loading. Please wait a moment and try again.",
+        );
+
         setSubmitting(false);
         return;
       }
 
       try {
-        captchaToken = await getToken('contact_form');
-      } catch (error) {
-        setSubmitError('Unable to verify reCAPTCHA. Please refresh the page and try again.');
+        captchaToken = await getToken("contact_form");
+      } catch {
+        setSubmitError(
+          "Unable to verify reCAPTCHA. Please refresh the page and try again.",
+        );
+
         setSubmitting(false);
         return;
       }
     }
 
     try {
-      const response = await fetch('/api/contact', {
-        method: 'POST',
+      const response = await fetch("/api/contact", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           ...formData,
@@ -134,84 +201,137 @@ export default function Contact() {
       });
 
       const data = await response.json();
+
       if (!response.ok) {
-        throw new Error(data?.error || 'Unable to submit message.');
+        throw new Error(data?.error || "Unable to submit message.");
       }
 
       setSubmitted(true);
-      setSuccessMessage('Thank you for your message! I\'ll get back to you soon.');
 
-      setTimeout(() => {
-        setFormData({ name: '', email: '', subject: '', message: '' });
+      setSuccessMessage(
+        "Thank you for your message! I'll get back to you soon.",
+      );
+
+      // Reset form after displaying success message.
+      window.setTimeout(() => {
+        setFormData(initialFormData);
         setErrors({});
         setTouched({});
-        setBotField('');
+        setBotField("");
         setSubmitted(false);
-        setSuccessMessage('');
+        setSuccessMessage("");
+        formStartRef.current = Date.now();
       }, 4000);
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : 'Unable to submit message.');
+      setSubmitError(
+        error instanceof Error ? error.message : "Unable to submit message.",
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="bg-[var(--bg)] min-h-screen">
+    <div className="min-h-screen bg-[var(--bg)]">
       {/* Header */}
-      <section className="py-20 px-6 border-b border-[var(--card-border)] fade-in">
-        <div className="max-w-5xl mx-auto">
+      <section className="border-b border-[var(--card-border)] px-6 py-20 fade-in">
+        <div className="mx-auto max-w-5xl">
           <h1 className="section-title mb-4">Get In Touch</h1>
+
           <p className="section-subtitle">
-            Have a project in mind? I'd love to hear from you. Let's discuss how I can help.
+            Have a project in mind? I&apos;d love to hear from you. Let&apos;s
+            discuss how I can help.
           </p>
         </div>
       </section>
 
       {/* Contact Content */}
-      <section className="py-20 px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-12">
+      <section className="px-6 py-20">
+        <div className="mx-auto max-w-5xl">
+          <div className="grid gap-12 md:grid-cols-2">
             {/* Contact Information */}
             <div>
-              <h2 className="text-2xl font-bold text-[var(--color-dark-blue-400)] mb-8 stagger-1">Contact Information</h2>
-              
+              <h2 className="stagger-1 mb-8 text-2xl font-bold text-[var(--color-dark-blue-400)]">
+                Contact Information
+              </h2>
+
               <div className="space-y-8">
+                {/* Email */}
                 <div className="card stagger-1">
-                  <div className="text-3xl mb-3">📧</div>
-                  <h3 className="font-semibold text-[var(--color-forest-green-400)] mb-2">Email</h3>
-                  <a href={`mailto:${siteConfig.email}`} className="text-slate-300 hover:text-[var(--color-dark-blue-400)] transition-colors">
+                  <div className="mb-3 text-3xl">📧</div>
+
+                  <h3 className="mb-2 font-semibold text-[var(--color-forest-green-400)]">
+                    Email
+                  </h3>
+
+                  <a
+                    href={`mailto:${siteConfig.email}`}
+                    className="text-slate-300 transition-colors hover:text-[var(--color-dark-blue-400)]"
+                  >
                     {siteConfig.email}
                   </a>
                 </div>
 
+                {/* Phone */}
                 <div className="card stagger-2">
-                  <div className="text-3xl mb-3">�</div>
-                  <h3 className="font-semibold text-[var(--color-forest-green-400)] mb-2">Phone</h3>
-                  <a href={`tel:${siteConfig.phone}`} className="text-slate-300 hover:text-[var(--color-dark-blue-400)] transition-colors">
+                  <div className="mb-3 text-3xl">📞</div>
+
+                  <h3 className="mb-2 font-semibold text-[var(--color-forest-green-400)]">
+                    Phone
+                  </h3>
+
+                  <a
+                    href={`tel:${siteConfig.phone}`}
+                    className="text-slate-300 transition-colors hover:text-[var(--color-dark-blue-400)]"
+                  >
                     {siteConfig.phone}
                   </a>
                 </div>
 
+                {/* LinkedIn */}
                 <div className="card">
-                  <div className="text-3xl mb-3">�💼</div>
-                  <h3 className="font-semibold text-[var(--color-forest-green-400)] mb-2">LinkedIn</h3>
-                  <a href={siteConfig.linkedin} target="_blank" rel="noreferrer" className="text-slate-300 hover:text-[var(--color-dark-blue-400)] transition-colors">
-                    {siteConfig.linkedin.replace('https://', '')}
+                  <div className="mb-3 text-3xl">💼</div>
+
+                  <h3 className="mb-2 font-semibold text-[var(--color-forest-green-400)]">
+                    LinkedIn
+                  </h3>
+
+                  <a
+                    href={siteConfig.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-slate-300 transition-colors hover:text-[var(--color-dark-blue-400)]"
+                  >
+                    {siteConfig.linkedin.replace("https://", "")}
                   </a>
                 </div>
 
+                {/* GitHub */}
                 <div className="card">
-                  <div className="text-3xl mb-3">🐙</div>
-                  <h3 className="font-semibold text-[var(--color-forest-green-400)] mb-2">GitHub</h3>
-                  <a href={siteConfig.github} target="_blank" rel="noreferrer" className="text-slate-300 hover:text-[var(--color-dark-blue-400)] transition-colors">
-                    {siteConfig.github.replace('https://', '')}
+                  <div className="mb-3 text-3xl">🐙</div>
+
+                  <h3 className="mb-2 font-semibold text-[var(--color-forest-green-400)]">
+                    GitHub
+                  </h3>
+
+                  <a
+                    href={siteConfig.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-slate-300 transition-colors hover:text-[var(--color-dark-blue-400)]"
+                  >
+                    {siteConfig.github.replace("https://", "")}
                   </a>
                 </div>
 
+                {/* Location */}
                 <div className="card stagger-4">
-                  <div className="text-3xl mb-3">🌐</div>
-                  <h3 className="font-semibold text-[var(--color-forest-green-400)] mb-2">Location</h3>
+                  <div className="mb-3 text-3xl">🌐</div>
+
+                  <h3 className="mb-2 font-semibold text-[var(--color-forest-green-400)]">
+                    Location
+                  </h3>
+
                   <p className="text-slate-300">{siteConfig.location}</p>
                 </div>
               </div>
@@ -219,122 +339,193 @@ export default function Contact() {
 
             {/* Contact Form */}
             <div>
-              <h2 className="text-2xl font-bold text-[var(--color-dark-blue-400)] mb-8 stagger-2">Send Me a Message</h2>
-              
+              <h2 className="stagger-2 mb-8 text-2xl font-bold text-[var(--color-dark-blue-400)]">
+                Send Me a Message
+              </h2>
+
               {submitted ? (
-                <div className="card border-[var(--color-forest-green-600)] border-2 bg-[var(--color-forest-green-900)]/20 scale-fade-in">
-                  <div className="text-5xl mb-4 text-center">✓</div>
-                  <p className="text-center text-[var(--color-forest-green-400)] font-semibold">
+                <div className="card scale-fade-in border-2 border-[var(--color-forest-green-600)] bg-[var(--color-forest-green-900)]/20">
+                  <div className="mb-4 text-center text-5xl">✓</div>
+
+                  <p className="text-center font-semibold text-[var(--color-forest-green-400)]">
                     {successMessage}
                   </p>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Honeypot */}
                   <input
                     type="text"
                     name="botField"
                     value={botField}
                     onChange={(e) => setBotField(e.target.value)}
                     autoComplete="off"
-                    className="hidden"
+                    aria-hidden="true"
                     tabIndex={-1}
+                    className="hidden"
                   />
-                  {captchaEnabled && captchaLoadError ? (
+
+                  {/* reCAPTCHA Error */}
+                  {captchaEnabled && captchaLoadError && (
                     <div className="rounded-xl border border-yellow-500 bg-yellow-500/10 p-4 text-sm text-yellow-200">
-                      Unable to initialize reCAPTCHA. Please refresh the page and try again.
+                      Unable to initialize reCAPTCHA. Please refresh the page
+                      and try again.
                     </div>
-                  ) : null}
-                  {submitError ? (
-                    <div className="rounded-xl border border-red-500 bg-red-500/10 p-4 text-sm text-red-200">
+                  )}
+
+                  {/* Submission Error */}
+                  {submitError && (
+                    <div
+                      role="alert"
+                      className="rounded-xl border border-red-500 bg-red-500/10 p-4 text-sm text-red-200"
+                    >
                       {submitError}
                     </div>
-                  ) : null}
+                  )}
+
+                  {/* Name */}
                   <div className="stagger-1">
-                    <label className="block text-slate-300 font-medium mb-2">Name</label>
+                    <label
+                      htmlFor="name"
+                      className="mb-2 block font-medium text-slate-300"
+                    >
+                      Name
+                    </label>
+
                     <input
+                      id="name"
                       type="text"
                       name="name"
                       value={formData.name}
                       onChange={handleChange}
                       onBlur={handleBlur}
-                      className={`w-full px-4 py-2 bg-slate-900 border rounded-lg text-slate-100 focus:outline-none transition-all ${
+                      autoComplete="name"
+                      required
+                      aria-invalid={!!(touched.name && errors.name)}
+                      className={`w-full rounded-lg border bg-slate-900 px-4 py-2 text-slate-100 transition-all focus:outline-none ${
                         touched.name && errors.name
-                          ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20'
-                          : 'border-slate-700 focus:border-[var(--color-dark-blue-600)] focus:ring-2 focus:ring-[var(--color-dark-blue-600)]/20'
+                          ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                          : "border-slate-700 focus:border-[var(--color-dark-blue-600)] focus:ring-2 focus:ring-[var(--color-dark-blue-600)]/20"
                       }`}
                       placeholder="Your Name"
                     />
+
                     {touched.name && errors.name && (
-                      <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+                      <p className="mt-1 text-sm text-red-500">{errors.name}</p>
                     )}
                   </div>
 
+                  {/* Email */}
                   <div className="stagger-2">
-                    <label className="block text-slate-300 font-medium mb-2">Email</label>
+                    <label
+                      htmlFor="email"
+                      className="mb-2 block font-medium text-slate-300"
+                    >
+                      Email
+                    </label>
+
                     <input
+                      id="email"
                       type="email"
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
                       onBlur={handleBlur}
-                      className={`w-full px-4 py-2 bg-slate-900 border rounded-lg text-slate-100 focus:outline-none transition-all ${
+                      autoComplete="email"
+                      required
+                      aria-invalid={!!(touched.email && errors.email)}
+                      className={`w-full rounded-lg border bg-slate-900 px-4 py-2 text-slate-100 transition-all focus:outline-none ${
                         touched.email && errors.email
-                          ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20'
-                          : 'border-slate-700 focus:border-[var(--color-dark-blue-600)] focus:ring-2 focus:ring-[var(--color-dark-blue-600)]/20'
+                          ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                          : "border-slate-700 focus:border-[var(--color-dark-blue-600)] focus:ring-2 focus:ring-[var(--color-dark-blue-600)]/20"
                       }`}
                       placeholder="your@email.com"
                     />
+
                     {touched.email && errors.email && (
-                      <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+                      <p className="mt-1 text-sm text-red-500">
+                        {errors.email}
+                      </p>
                     )}
                   </div>
 
+                  {/* Subject */}
                   <div className="stagger-3">
-                    <label className="block text-slate-300 font-medium mb-2">Subject</label>
+                    <label
+                      htmlFor="subject"
+                      className="mb-2 block font-medium text-slate-300"
+                    >
+                      Subject
+                    </label>
+
                     <input
+                      id="subject"
                       type="text"
                       name="subject"
                       value={formData.subject}
                       onChange={handleChange}
                       onBlur={handleBlur}
-                      className={`w-full px-4 py-2 bg-slate-900 border rounded-lg text-slate-100 focus:outline-none transition-all ${
+                      required
+                      aria-invalid={!!(touched.subject && errors.subject)}
+                      className={`w-full rounded-lg border bg-slate-900 px-4 py-2 text-slate-100 transition-all focus:outline-none ${
                         touched.subject && errors.subject
-                          ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20'
-                          : 'border-slate-700 focus:border-[var(--color-dark-blue-600)] focus:ring-2 focus:ring-[var(--color-dark-blue-600)]/20'
+                          ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                          : "border-slate-700 focus:border-[var(--color-dark-blue-600)] focus:ring-2 focus:ring-[var(--color-dark-blue-600)]/20"
                       }`}
                       placeholder="Project subject"
                     />
+
                     {touched.subject && errors.subject && (
-                      <p className="text-red-500 text-sm mt-1">{errors.subject}</p>
+                      <p className="mt-1 text-sm text-red-500">
+                        {errors.subject}
+                      </p>
                     )}
                   </div>
 
+                  {/* Message */}
                   <div className="stagger-4">
-                    <label className="block text-slate-300 font-medium mb-2">Message</label>
+                    <label
+                      htmlFor="message"
+                      className="mb-2 block font-medium text-slate-300"
+                    >
+                      Message
+                    </label>
+
                     <textarea
+                      id="message"
                       name="message"
                       value={formData.message}
                       onChange={handleChange}
                       onBlur={handleBlur}
                       rows={6}
-                      className={`w-full px-4 py-2 bg-slate-900 border rounded-lg text-slate-100 focus:outline-none transition-all resize-none ${
+                      required
+                      aria-invalid={!!(touched.message && errors.message)}
+                      className={`w-full resize-none rounded-lg border bg-slate-900 px-4 py-2 text-slate-100 transition-all focus:outline-none ${
                         touched.message && errors.message
-                          ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20'
-                          : 'border-slate-700 focus:border-[var(--color-dark-blue-600)] focus:ring-2 focus:ring-[var(--color-dark-blue-600)]/20'
+                          ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                          : "border-slate-700 focus:border-[var(--color-dark-blue-600)] focus:ring-2 focus:ring-[var(--color-dark-blue-600)]/20"
                       }`}
                       placeholder="Tell me about your project..."
                     />
+
                     {touched.message && errors.message && (
-                      <p className="text-red-500 text-sm mt-1">{errors.message}</p>
+                      <p className="mt-1 text-sm text-red-500">
+                        {errors.message}
+                      </p>
                     )}
                   </div>
 
+                  {/* Submit */}
                   <button
                     type="submit"
-                    disabled={submitting}
-                    className={`w-full btn-primary stagger-5 hover:shadow-lg hover:shadow-[var(--accent)]/30 transition-all ${submitting ? 'cursor-not-allowed opacity-70' : ''}`}
+                    disabled={
+                      submitting || (captchaEnabled && !!captchaLoadError)
+                    }
+                    className={`btn-primary stagger-5 w-full transition-all hover:shadow-lg hover:shadow-[var(--accent)]/30 ${
+                      submitting ? "cursor-not-allowed opacity-70" : ""
+                    }`}
                   >
-                    {submitting ? 'Sending...' : 'Send Message'}
+                    {submitting ? "Sending..." : "Send Message"}
                   </button>
                 </form>
               )}
@@ -343,21 +534,55 @@ export default function Contact() {
         </div>
       </section>
 
-      {/* Social Links Section */}
-      <section className="py-20 px-6 bg-gradient-to-b from-slate-900 to-slate-950 border-t border-slate-800 fade-in">
-        <div className="max-w-5xl mx-auto text-center">
-          <h2 className="text-2xl font-bold text-white mb-8 stagger-1">Connect With Me</h2>
-          <div className="flex justify-center gap-6 flex-wrap">
-            <a href={siteConfig.facebook} target="_blank" rel="noreferrer" className="w-12 h-12 bg-[var(--color-dark-blue-600)] hover:bg-[var(--color-dark-blue-700)] rounded-full flex items-center justify-center transition-colors stagger-1 hover:scale-110 hover:shadow-lg hover:shadow-[var(--accent)]/40 transform duration-300">
+      {/* Social Links */}
+      <section className="border-t border-slate-800 bg-gradient-to-b from-slate-900 to-slate-950 px-6 py-20 fade-in">
+        <div className="mx-auto max-w-5xl text-center">
+          <h2 className="stagger-1 mb-8 text-2xl font-bold text-white">
+            Connect With Me
+          </h2>
+
+          <div className="flex flex-wrap justify-center gap-6">
+            {/* Facebook */}
+            <a
+              href={siteConfig.facebook}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Facebook"
+              className="stagger-1 flex h-12 w-12 transform items-center justify-center rounded-full bg-[var(--color-dark-blue-600)] transition-colors duration-300 hover:scale-110 hover:bg-[var(--color-dark-blue-700)] hover:shadow-lg hover:shadow-[var(--accent)]/40"
+            >
               <span className="text-white">f</span>
             </a>
-            <a href={siteConfig.twitter} target="_blank" rel="noreferrer" className="w-12 h-12 bg-[var(--color-dark-blue-600)] hover:bg-[var(--color-dark-blue-700)] rounded-full flex items-center justify-center transition-colors stagger-2 hover:scale-110 hover:shadow-lg hover:shadow-[var(--accent)]/40 transform duration-300">
+
+            {/* X / Twitter */}
+            <a
+              href={siteConfig.twitter}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="X / Twitter"
+              className="stagger-2 flex h-12 w-12 transform items-center justify-center rounded-full bg-[var(--color-dark-blue-600)] transition-colors duration-300 hover:scale-110 hover:bg-[var(--color-dark-blue-700)] hover:shadow-lg hover:shadow-[var(--accent)]/40"
+            >
               <span className="text-white">𝕏</span>
             </a>
-            <a href={siteConfig.linkedin} target="_blank" rel="noreferrer" className="w-12 h-12 bg-[var(--color-forest-green-600)] hover:bg-[var(--color-forest-green-700)] rounded-full flex items-center justify-center transition-colors stagger-3 hover:scale-110 hover:shadow-lg hover:shadow-[var(--accent-2)]/40 transform duration-300">
+
+            {/* LinkedIn */}
+            <a
+              href={siteConfig.linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="LinkedIn"
+              className="stagger-3 flex h-12 w-12 transform items-center justify-center rounded-full bg-[var(--color-forest-green-600)] transition-colors duration-300 hover:scale-110 hover:bg-[var(--color-forest-green-700)] hover:shadow-lg hover:shadow-[var(--accent-2)]/40"
+            >
               <span className="text-white">in</span>
             </a>
-            <a href={siteConfig.github} target="_blank" rel="noreferrer" className="w-12 h-12 bg-[var(--color-dark-blue-600)] hover:bg-[var(--color-dark-blue-700)] rounded-full flex items-center justify-center transition-colors stagger-4 hover:scale-110 hover:shadow-lg hover:shadow-[var(--accent)]/40 transform duration-300">
+
+            {/* GitHub */}
+            <a
+              href={siteConfig.github}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="GitHub"
+              className="stagger-4 flex h-12 w-12 transform items-center justify-center rounded-full bg-[var(--color-dark-blue-600)] transition-colors duration-300 hover:scale-110 hover:bg-[var(--color-dark-blue-700)] hover:shadow-lg hover:shadow-[var(--accent)]/40"
+            >
               <span className="text-white">⚙</span>
             </a>
           </div>

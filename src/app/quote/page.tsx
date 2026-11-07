@@ -37,6 +37,43 @@ const inputClass =
 
 const labelClass = "mb-2 block text-sm font-medium text-slate-300";
 
+const projectTypes = [
+  "Website Development",
+  "Web Application",
+  "Mobile App",
+  "E-Commerce Website",
+  "WordPress Development",
+  "Business Website",
+  "SaaS Product",
+  "Dashboard / Analytics",
+  "Landing Page",
+  "API Development",
+  "Website Redesign",
+  "Other",
+];
+
+const budgetRanges = [
+  "Below KES 15,000",
+  "KES 15,000 - 30,000",
+  "KES 30,000 - 60,000",
+  "KES 60,000 - 100,000",
+  "KES 100,000 - 250,000",
+  "KES 250,000+",
+  "Below USD 500",
+  "USD 500 - 1,000",
+  "USD 1,000 - 5,000",
+  "USD 5,000+",
+  "Not sure / Need advice",
+];
+
+const timelines = [
+  "ASAP (Less than 1 month)",
+  "1-3 months",
+  "3-6 months",
+  "6+ months",
+  "Flexible",
+];
+
 export default function RequestQuote() {
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -46,7 +83,12 @@ export default function RequestQuote() {
   const [submitError, setSubmitError] = useState("");
   const [botField, setBotField] = useState("");
 
-  const formStartRef = useRef(Date.now());
+  const formStartRef = useRef<number>(0);
+
+  // Record when the form is first mounted.
+  useEffect(() => {
+    formStartRef.current = Date.now();
+  }, []);
 
   const {
     enabled: captchaEnabled,
@@ -60,52 +102,20 @@ export default function RequestQuote() {
     const params = new URLSearchParams(window.location.search);
     const project = params.get("project");
 
-    if (project) {
+    if (!project) return;
+
+    const timeoutId = window.setTimeout(() => {
       setFormData((prev) => ({
         ...prev,
-        projectName: project.slice(0, 150),
+        projectName: prev.projectName || project.slice(0, 150),
       }));
-    }
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, []);
 
-  const projectTypes = [
-    "Website Development",
-    "Web Application",
-    "Mobile App",
-    "E-Commerce Website",
-    "WordPress Development",
-    "Business Website",
-    "SaaS Product",
-    "Dashboard / Analytics",
-    "Landing Page",
-    "API Development",
-    "Website Redesign",
-    "Other",
-  ];
-
-  const budgetRanges = [
-    "Below KES 15,000",
-    "KES 15,000 - 30,000",
-    "KES 30,000 - 60,000",
-    "KES 60,000 - 100,000",
-    "KES 100,000 - 250,000",
-    "KES 250,000+",
-    "Below USD 500",
-    "USD 500 - 1,000",
-    "USD 1,000 - 5,000",
-    "USD 5,000+",
-    "Not sure / Need advice",
-  ];
-
-  const timelines = [
-    "ASAP (Less than 1 month)",
-    "1-3 months",
-    "3-6 months",
-    "6+ months",
-    "Flexible",
-  ];
-
-  const validateField = (name: string, value: string) => {
+  // Validate individual form fields.
+  const validateField = (name: string, value: string): string => {
     switch (name) {
       case "name":
         if (!value.trim()) return "Full name is required.";
@@ -140,6 +150,7 @@ export default function RequestQuote() {
     }
   };
 
+  // Handle changes to form fields.
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
@@ -158,6 +169,7 @@ export default function RequestQuote() {
     }
   };
 
+  // Validate fields when the user leaves them.
   const handleBlur = (
     e: FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
@@ -174,7 +186,8 @@ export default function RequestQuote() {
     }));
   };
 
-  const validateForm = () => {
+  // Validate the entire form before submission.
+  const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
     Object.entries(formData).forEach(([key, value]) => {
@@ -195,25 +208,20 @@ export default function RequestQuote() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Submit quotation request.
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    console.log("[QUOTE] Submit handler fired");
-
     e.preventDefault();
 
     const isValid = validateForm();
 
-    console.log("[QUOTE] Validation result:", isValid);
-
-    if (!isValid) {
-      console.log("[QUOTE] Validation errors:", errors);
-      return;
-    }
+    if (!isValid) return;
 
     setSubmitError("");
     setSubmitting(true);
 
     let captchaToken = "";
 
+    // Verify reCAPTCHA when enabled.
     if (captchaEnabled) {
       if (!captchaReady) {
         setSubmitError(
@@ -277,14 +285,14 @@ export default function RequestQuote() {
       <section className="border-b border-[var(--card-border)] px-6 py-20">
         <div className="mx-auto max-w-5xl">
           <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-[var(--accent-2)]">
-            Let's work together
+            Let&apos;s work together
           </p>
 
           <h1 className="section-title mb-4">Request a Quote</h1>
 
           <p className="section-subtitle">
             Tell me about your project, your goals and what you would like to
-            achieve. I'll prepare a tailored proposal based on your
+            achieve. I&apos;ll prepare a tailored proposal based on your
             requirements.
           </p>
         </div>
@@ -304,8 +312,8 @@ export default function RequestQuote() {
               </p>
 
               <p className="mb-6 text-[var(--muted)]">
-                I'll review your requirements and get back to you within 24-48
-                hours.
+                I&apos;ll review your requirements and get back to you within
+                24-48 hours.
               </p>
 
               {formData.projectName && (
@@ -332,12 +340,14 @@ export default function RequestQuote() {
                 className="hidden"
               />
 
+              {/* reCAPTCHA error */}
               {captchaEnabled && captchaLoadError && (
                 <div className="rounded-xl border border-yellow-500 bg-yellow-500/10 p-4 text-sm text-yellow-200">
                   Unable to initialize reCAPTCHA. Please refresh the page.
                 </div>
               )}
 
+              {/* Submission error */}
               {submitError && (
                 <div
                   role="alert"
@@ -489,6 +499,7 @@ export default function RequestQuote() {
                     onChange={handleChange}
                     onBlur={handleBlur}
                     className={inputClass}
+                    aria-invalid={!!errors.projectType}
                     required
                   >
                     <option value="">Select project type</option>
@@ -522,6 +533,7 @@ export default function RequestQuote() {
                     maxLength={5000}
                     className={`${inputClass} resize-y`}
                     placeholder="Describe your project, business goals, target audience and the problem you want to solve..."
+                    aria-invalid={!!errors.projectDescription}
                     required
                   />
 
@@ -577,6 +589,7 @@ export default function RequestQuote() {
                       onChange={handleChange}
                       onBlur={handleBlur}
                       className={inputClass}
+                      aria-invalid={!!errors.budgetRange}
                       required
                     >
                       <option value="">Select your budget</option>
@@ -607,6 +620,7 @@ export default function RequestQuote() {
                       onChange={handleChange}
                       onBlur={handleBlur}
                       className={inputClass}
+                      aria-invalid={!!errors.timeline}
                       required
                     >
                       <option value="">Select your timeline</option>
@@ -634,10 +648,10 @@ export default function RequestQuote() {
                     What happens next?
                   </strong>
                   <br />
-                  I'll review your requirements and prepare a tailored quotation
-                  outlining the proposed scope, deliverables, estimated timeline
-                  and pricing. Submitting this request is free and carries no
-                  obligation.
+                  I&apos;ll review your requirements and prepare a tailored
+                  quotation outlining the proposed scope, deliverables,
+                  estimated timeline and pricing. Submitting this request is
+                  free and carries no obligation.
                 </p>
               </div>
 
@@ -688,7 +702,7 @@ export default function RequestQuote() {
                   "Yes. Requesting a quotation is completely free and carries no obligation.",
               },
               {
-                title: "What's included in the quotation?",
+                title: "What&apos;s included in the quotation?",
                 description:
                   "Project scope, deliverables, estimated timeline, recommended technologies, pricing and support options.",
               },

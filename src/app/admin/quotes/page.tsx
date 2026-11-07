@@ -1,303 +1,123 @@
 ﻿import Link from "next/link";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import { updateQuoteStatus } from "./actions";
 
-export const dynamic = "force-dynamic";
+type QuoteRequest = {
+  id: string;
+  name: string;
+  email: string;
+  project_type: string;
+  budget: string;
+  status: "pending" | "reviewed" | "accepted" | "rejected";
+  created_at: string;
+};
 
-const statuses = [
-  "pending",
-  "reviewing",
-  "quoted",
-  "completed",
-  "cancelled",
-];
+function StatusBadge({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    pending: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+    reviewed: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    accepted: "bg-green-500/10 text-green-400 border-green-500/20",
+    rejected: "bg-red-500/10 text-red-400 border-red-500/20",
+  };
+  const style = styles[status] || "bg-gray-500/10 text-gray-400 border-gray-500/20";
+  
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium capitalize ${style}`}>
+      {status}
+    </span>
+  );
+}
 
 export default async function AdminQuotesPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    status?: string;
-    search?: string;
-    deleted?: string;
-    error?: string;
-  }>;
+  searchParams: Promise<{ status?: string }>;
 }) {
   await requireAdmin();
-
-  const params = await searchParams;
-
-  const selectedStatus = statuses.includes(params.status ?? "")
-    ? params.status!
-    : "";
-
-  const search = (params.search ?? "")
-    .replace(/[^a-zA-Z0-9\s@._-]/g, "")
-    .trim()
-    .slice(0, 100);
-
   const supabase = getSupabaseAdmin();
-
-  const { data: allQuotes, error: statsError } = await supabase
-    .from("quote_requests")
-    .select("id,status");
+  const { status } = await searchParams;
 
   let query = supabase
     .from("quote_requests")
-    .select("*")
+    .select("id, name, email, project_type, budget, status, created_at")
     .order("created_at", { ascending: false });
 
-  if (selectedStatus) {
-    query = query.eq("status", selectedStatus);
+  if (status && status !== "all") {
+    query = query.eq("status", status);
   }
 
-  if (search) {
-    query = query.or(
-      `name.ilike.%${search}%,email.ilike.%${search}%,project_name.ilike.%${search}%`
-    );
-  }
-
-  const { data: quotes, error } = await query;
-
-  const records = allQuotes ?? [];
-  const requests = quotes ?? [];
-
-  const stats = [
-    {
-      label: "Total requests",
-      value: records.length,
-    },
-    {
-      label: "Pending",
-      value: records.filter((q) => q.status === "pending").length,
-    },
-    {
-      label: "Reviewing",
-      value: records.filter((q) => q.status === "reviewing").length,
-    },
-    {
-      label: "Quoted",
-      value: records.filter((q) => q.status === "quoted").length,
-    },
-    {
-      label: "Completed",
-      value: records.filter((q) => q.status === "completed").length,
-    },
-  ];
-
-  const statusStyle: Record<string, string> = {
-    pending: "bg-yellow-500/10 text-yellow-600",
-    reviewing: "bg-blue-500/10 text-blue-600",
-    quoted: "bg-purple-500/10 text-purple-600",
-    completed: "bg-green-500/10 text-green-600",
-    cancelled: "bg-red-500/10 text-red-600",
-  };
+  const { data: quotes } = (await query) as { data: QuoteRequest[] | null };
+  const statuses = ["all", "pending", "reviewed", "accepted", "rejected"];
 
   return (
-    <main className="min-h-screen px-6 py-12">
-      <div className="mx-auto max-w-6xl">
-
-        <div className="flex flex-wrap items-center justify-between gap-4">
+    <main className="min-h-screen px-6 py-12 bg-[var(--bg)]">
+      <div className="mx-auto max-w-7xl">
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
           <div>
-            <Link
-              href="/admin"
-              className="text-sm text-[var(--accent-2)] hover:underline"
-            >
-              ← Dashboard
-            </Link>
-
-            <h1 className="mt-3 text-4xl font-bold">
-              Quote Requests
-            </h1>
-
-            <p className="mt-2 text-[var(--muted)]">
-              Manage client enquiries and quotation requests.
-            </p>
+            <p className="text-sm font-semibold uppercase tracking-widest text-[var(--accent)]">Portfolio CMS</p>
+            <h1 className="mt-2 text-4xl font-bold text-[var(--text)]">Quotation Requests</h1>
           </div>
-
-          <Link href="/admin/projects" className="btn-secondary">
-            Manage projects
-          </Link>
+          <Link href="/admin" className="btn-secondary">← Back to Dashboard</Link>
         </div>
 
-        {params.deleted && (
-          <p className="mt-6 rounded-xl border border-green-500/40 p-3 text-sm">
-            Quotation deleted successfully.
-          </p>
-        )}
+        <div className="flex flex-wrap gap-2 mb-6">
+          {statuses.map((s) => {
+            const isActive = status === s || (s === "all" && !status);
+            return (
+              <Link
+                key={s}
+                href={`/admin/quotes${s === "all" ? "" : `?status=${s}`}`}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                  isActive
+                    ? "bg-[var(--accent)] text-white border-[var(--accent)]"
+                    : "bg-[var(--surface)] text-[var(--muted)] border-[var(--card-border)] hover:border-[var(--accent)]"
+                }`}
+              >
+                {s.charAt(0).toUpperCase() + s.slice(1)}
+              </Link>
+            );
+          })}
+        </div>
 
-        {params.error && (
-          <p className="mt-6 rounded-xl border border-red-500/40 p-3 text-sm">
-            The requested action could not be completed.
-          </p>
-        )}
-
-        {statsError && (
-          <p className="mt-6 rounded-xl border border-red-500/40 p-3 text-sm">
-            Could not load quotation statistics.
-          </p>
-        )}
-
-        <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {stats.map((stat) => (
-            <div
-              key={stat.label}
-              className="rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] p-5"
-            >
-              <p className="text-sm text-[var(--muted)]">
-                {stat.label}
-              </p>
-
-              <p className="mt-3 text-3xl font-bold">
-                {statsError ? "—" : stat.value}
-              </p>
-            </div>
-          ))}
-        </section>
-
-        <section className="mt-10 rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] p-5">
-
-          <form
-            action="/admin/quotes"
-            method="GET"
-            className="flex flex-wrap gap-3"
-          >
-            <input
-              type="search"
-              name="search"
-              defaultValue={search}
-              placeholder="Search client or project..."
-              className="min-w-0 flex-1 rounded-xl border border-[var(--card-border)] bg-transparent px-4 py-3"
-            />
-
-            <select
-              name="status"
-              defaultValue={selectedStatus}
-              className="rounded-xl border border-[var(--card-border)] bg-[var(--surface)] px-4 py-3"
-            >
-              <option value="">All statuses</option>
-
-              {statuses.map((status) => (
-                <option key={status} value={status}>
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
-                </option>
-              ))}
-            </select>
-
-            <button type="submit" className="btn-primary">
-              Search
-            </button>
-
-            <Link href="/admin/quotes" className="btn-secondary">
-              Reset
-            </Link>
-          </form>
-
-          {error ? (
-            <p className="mt-8 rounded-xl border border-red-500/40 p-5">
-              Could not load quotation requests. Check your Supabase
-              configuration and quote_requests table.
-            </p>
-          ) : requests.length === 0 ? (
-            <div className="py-16 text-center">
-              <h2 className="text-xl font-semibold">
-                No quotation requests found
-              </h2>
-
-              <p className="mt-2 text-[var(--muted)]">
-                New client submissions will appear here.
-              </p>
-            </div>
-          ) : (
-            <div className="mt-6 overflow-x-auto">
-              <table className="w-full min-w-[750px] text-left text-sm">
-                <thead>
-                  <tr className="border-b border-[var(--card-border)] text-[var(--muted)]">
-                    <th className="px-3 py-4">Client</th>
-                    <th className="px-3 py-4">Project</th>
-                    <th className="px-3 py-4">Budget</th>
-                    <th className="px-3 py-4">Date</th>
-                    <th className="px-3 py-4">Status</th>
-                    <th className="px-3 py-4">Action</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {requests.map((quote) => (
-                    <tr
-                      key={quote.id}
-                      className="border-b border-[var(--card-border)] last:border-0"
-                    >
-                      <td className="px-3 py-5">
-                        <p className="font-semibold">{quote.name}</p>
-                        <p className="mt-1 text-xs text-[var(--muted)]">
-                          {quote.email}
-                        </p>
+        <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-[var(--bg)] text-[var(--muted)] uppercase tracking-wider">
+                <tr>
+                  <th className="px-6 py-4 font-semibold">Client</th>
+                  <th className="px-6 py-4 font-semibold">Project Type</th>
+                  <th className="px-6 py-4 font-semibold">Budget</th>
+                  <th className="px-6 py-4 font-semibold">Status</th>
+                  <th className="px-6 py-4 font-semibold">Date</th>
+                  <th className="px-6 py-4 font-semibold text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--card-border)]">
+                {quotes && quotes.length > 0 ? (
+                  quotes.map((quote) => (
+                    <tr key={quote.id} className="hover:bg-[var(--bg)]/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="font-medium text-[var(--text)]">{quote.name}</div>
+                        <div className="text-xs text-[var(--muted)]">{quote.email}</div>
                       </td>
-
-                      <td className="px-3 py-5">
-                        {quote.project_name || quote.project_type}
-                      </td>
-
-                      <td className="px-3 py-5">
-                        {quote.budget_range}
-                      </td>
-
-                      <td className="px-3 py-5">
-                        {new Date(quote.created_at).toLocaleDateString("en-KE")}
-                      </td>
-
-                      <td className="px-3 py-5">
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                            statusStyle[quote.status] ??
-                            "bg-gray-500/10 text-gray-600"
-                          }`}
-                        >
-                          {quote.status}
-                        </span>
-                      </td>
-
-                      <td className="px-3 py-5">
-                        <div className="flex flex-wrap gap-2">
-                          <Link
-                            href={`/admin/quotes/${quote.id}`}
-                            className="btn-secondary"
-                          >
-                            View
-                          </Link>
-
-                          {quote.status === "pending" && (
-                            <form action={updateQuoteStatus}>
-                              <input
-                                type="hidden"
-                                name="id"
-                                value={quote.id}
-                              />
-
-                              <input
-                                type="hidden"
-                                name="status"
-                                value="reviewing"
-                              />
-
-                              <button
-                                type="submit"
-                                className="rounded-xl border border-blue-500/40 px-3 py-2 text-xs text-blue-600"
-                              >
-                                Review
-                              </button>
-                            </form>
-                          )}
-                        </div>
+                      <td className="px-6 py-4 text-[var(--text)] capitalize">{quote.project_type}</td>
+                      <td className="px-6 py-4 text-[var(--text)]">{quote.budget}</td>
+                      <td className="px-6 py-4"><StatusBadge status={quote.status} /></td>
+                      <td className="px-6 py-4 text-[var(--muted)]">{new Date(quote.created_at).toLocaleDateString()}</td>
+                      <td className="px-6 py-4 text-right">
+                        <Link href={`/admin/quotes/${quote.id}`} className="text-[var(--accent)] hover:text-[var(--accent-2)] font-medium">View Details</Link>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-[var(--muted)]">No quotation requests found for this filter.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </main>
   );

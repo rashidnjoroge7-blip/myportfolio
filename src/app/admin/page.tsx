@@ -1,172 +1,160 @@
-﻿import Link from "next/link";
+﻿// src/app/admin/quotes/page.tsx
+import Link from "next/link";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
-export const dynamic = "force-dynamic";
+type QuoteRequest = {
+  id: string;
+  name: string;
+  email: string;
+  project_type: string;
+  budget: string;
+  status: "pending" | "reviewed" | "accepted" | "rejected";
+  created_at: string;
+};
 
-export default async function AdminDashboardPage() {
-  const session = await requireAdmin();
-  const supabase = getSupabaseAdmin();
-
-  const [
-    { data: projectData, error: projectError },
-    { data: quoteData, error: quoteError },
-  ] = await Promise.all([
-    supabase.from("projects").select("id,status,featured"),
-    supabase.from("quote_requests").select("id,status"),
-  ]);
-
-  const projects = projectData ?? [];
-  const quotes = quoteData ?? [];
-
-  const stats = [
-    {
-      label: "All projects",
-      value: projectError ? "—" : String(projects.length),
-    },
-    {
-      label: "Published",
-      value: projectError
-        ? "—"
-        : String(projects.filter((p) => p.status === "published").length),
-    },
-    {
-      label: "Drafts",
-      value: projectError
-        ? "—"
-        : String(projects.filter((p) => p.status === "draft").length),
-    },
-    {
-      label: "Featured",
-      value: projectError
-        ? "—"
-        : String(projects.filter((p) => p.featured).length),
-    },
-    {
-      label: "Quote requests",
-      value: quoteError ? "—" : String(quotes.length),
-    },
-    {
-      label: "Pending quotes",
-      value: quoteError
-        ? "—"
-        : String(quotes.filter((q) => q.status === "pending").length),
-    },
-  ];
+function StatusBadge({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    pending: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+    reviewed: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    accepted: "bg-green-500/10 text-green-400 border-green-500/20",
+    rejected: "bg-red-500/10 text-red-400 border-red-500/20",
+  };
+  const style =
+    styles[status] || "bg-gray-500/10 text-gray-400 border-gray-500/20";
 
   return (
-    <main className="min-h-screen px-6 py-12">
-      <div className="mx-auto max-w-6xl">
+    <span
+      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium capitalize ${style}`}
+    >
+      {status}
+    </span>
+  );
+}
 
-        <div className="flex flex-wrap items-start justify-between gap-4">
+export default async function AdminQuotesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
+  await requireAdmin();
+  const supabase = getSupabaseAdmin();
+  const { status } = await searchParams;
+
+  let query = supabase
+    .from("quote_requests")
+    .select("id, name, email, project_type, budget, status, created_at")
+    .order("created_at", { ascending: false });
+
+  if (status && status !== "all") {
+    query = query.eq("status", status);
+  }
+
+  const { data: quotes } = (await query) as { data: QuoteRequest[] | null };
+  const statuses = ["all", "pending", "reviewed", "accepted", "rejected"];
+
+  return (
+    <main className="min-h-screen px-6 py-12 bg-[var(--bg)]">
+      <div className="mx-auto max-w-7xl">
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
           <div>
             <p className="text-sm font-semibold uppercase tracking-widest text-[var(--accent)]">
               Portfolio CMS
             </p>
-
-            <h1 className="mt-2 text-4xl font-bold">
-              Admin dashboard
+            <h1 className="mt-2 text-4xl font-bold text-[var(--text)]">
+              Quotation Requests
             </h1>
-
-            <p className="mt-2 text-[var(--muted)]">
-              Signed in as {session.user?.email}
-            </p>
           </div>
-
-          <div className="flex flex-wrap gap-3">
-            <Link href="/admin/projects" className="btn-secondary">
-              Manage projects
-            </Link>
-
-            <Link href="/admin/quotes" className="btn-secondary">
-              Manage quotations
-            </Link>
-
-            <Link href="/admin/projects/new" className="btn-primary">
-              + Add project
-            </Link>
-          </div>
+          <Link href="/admin" className="btn-secondary">
+            ← Back to Dashboard
+          </Link>
         </div>
 
-        {projectError && (
-          <p role="alert" className="mt-8 rounded-xl border border-red-500/40 p-4 text-sm">
-            Could not read the projects table. Check your Supabase configuration.
-          </p>
-        )}
-
-        {quoteError && (
-          <p role="alert" className="mt-4 rounded-xl border border-red-500/40 p-4 text-sm">
-            Could not read quotation requests. Check your quote_requests table.
-          </p>
-        )}
-
-        <h2 className="mt-10 text-xl font-semibold">
-          Business overview
-        </h2>
-
-        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          {stats.map((stat) => (
-            <div
-              key={stat.label}
-              className="rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] p-5"
-            >
-              <p className="text-sm text-[var(--muted)]">
-                {stat.label}
-              </p>
-
-              <p className="mt-3 text-3xl font-bold">
-                {stat.value}
-              </p>
-            </div>
-          ))}
+        <div className="flex flex-wrap gap-2 mb-6">
+          {statuses.map((s) => {
+            const isActive = status === s || (s === "all" && !status);
+            return (
+              <Link
+                key={s}
+                href={`/admin/quotes${s === "all" ? "" : `?status=${s}`}`}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                  isActive
+                    ? "bg-[var(--accent)] text-white border-[var(--accent)]"
+                    : "bg-[var(--surface)] text-[var(--muted)] border-[var(--card-border)] hover:border-[var(--accent)]"
+                }`}
+              >
+                {s.charAt(0).toUpperCase() + s.slice(1)}
+              </Link>
+            );
+          })}
         </div>
 
-        <section className="mt-10 grid gap-5 md:grid-cols-2">
-
-          <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] p-6">
-            <h2 className="text-xl font-semibold">
-              Project management
-            </h2>
-
-            <p className="mt-2 text-sm text-[var(--muted)]">
-              Manage your portfolio projects, descriptions, images and publication status.
-            </p>
-
-            <Link href="/admin/projects" className="btn-secondary mt-5 inline-block">
-              Open projects
-            </Link>
+        <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-[var(--bg)] text-[var(--muted)] uppercase tracking-wider">
+                <tr>
+                  <th className="px-6 py-4 font-semibold">Client</th>
+                  <th className="px-6 py-4 font-semibold">Project Type</th>
+                  <th className="px-6 py-4 font-semibold">Budget</th>
+                  <th className="px-6 py-4 font-semibold">Status</th>
+                  <th className="px-6 py-4 font-semibold">Date</th>
+                  <th className="px-6 py-4 font-semibold text-right">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--card-border)]">
+                {quotes && quotes.length > 0 ? (
+                  quotes.map((quote) => (
+                    <tr
+                      key={quote.id}
+                      className="hover:bg-[var(--bg)]/50 transition-colors"
+                    >
+                      <td className="px-6 py-4">
+                        <div className="font-medium text-[var(--text)]">
+                          {quote.name}
+                        </div>
+                        <div className="text-xs text-[var(--muted)]">
+                          {quote.email}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-[var(--text)] capitalize">
+                        {quote.project_type}
+                      </td>
+                      <td className="px-6 py-4 text-[var(--text)]">
+                        {quote.budget}
+                      </td>
+                      <td className="px-6 py-4">
+                        <StatusBadge status={quote.status} />
+                      </td>
+                      <td className="px-6 py-4 text-[var(--muted)]">
+                        {new Date(quote.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <Link
+                          href={`/admin/quotes/${quote.id}`}
+                          className="text-[var(--accent)] hover:text-[var(--accent-2)] font-medium"
+                        >
+                          View Details
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-6 py-12 text-center text-[var(--muted)]"
+                    >
+                      No quotation requests found for this filter.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
-
-          <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] p-6">
-            <h2 className="text-xl font-semibold">
-              Quotation management
-            </h2>
-
-            <p className="mt-2 text-sm text-[var(--muted)]">
-              Review client enquiries, evaluate budgets, update quotation progress and contact potential clients.
-            </p>
-
-            <Link href="/admin/quotes" className="btn-primary mt-5 inline-block">
-              Open quotations
-            </Link>
-          </div>
-
-        </section>
-
-        <section className="mt-10 rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] p-6">
-          <h2 className="text-xl font-semibold">
-            Quick start
-          </h2>
-
-          <ol className="mt-4 list-inside list-decimal space-y-2 text-[var(--muted)]">
-            <li>Create a project and add a short description.</li>
-            <li>Add an HTTPS live-demo link and cover image.</li>
-            <li>Save as a draft until it is ready.</li>
-            <li>Publish it when you want it visible on the public Projects page.</li>
-            <li>Review incoming quotation requests regularly.</li>
-          </ol>
-        </section>
-
+        </div>
       </div>
     </main>
   );

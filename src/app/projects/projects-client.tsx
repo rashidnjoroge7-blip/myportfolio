@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { PortfolioProject } from "@/lib/projectSchema";
@@ -71,11 +72,13 @@ export default function ProjectsClient({ projects, github }: Props) {
                   key={project.id}
                   className={`card group flex flex-col overflow-hidden hover-card stagger-${(index % 5) + 1}`}
                 >
-                  {/* Project Image */}
                   {project.image_url ? (
-                    <img
+                    <Image
                       src={project.image_url}
                       alt={project.title}
+                      width={800}
+                      height={450}
+                      unoptimized
                       className="mb-4 h-48 w-full rounded-xl object-cover"
                     />
                   ) : (
@@ -170,7 +173,7 @@ export default function ProjectsClient({ projects, github }: Props) {
             </a>
 
             <a href="/contact" className="btn-secondary">
-              Let's Talk
+              Let&apos;s Talk
             </a>
           </div>
         </div>

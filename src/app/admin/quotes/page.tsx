@@ -7,20 +7,21 @@ type QuoteRequest = {
   name: string;
   email: string;
   project_type: string;
-  budget: string;
-  status: "pending" | "reviewed" | "accepted" | "rejected";
+  budget_range: string;
+  status: "pending" | "reviewing" | "quoted" | "completed" | "cancelled";
   created_at: string;
 };
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
     pending: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-    reviewed: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-    accepted: "bg-green-500/10 text-green-400 border-green-500/20",
-    rejected: "bg-red-500/10 text-red-400 border-red-500/20",
+    reviewing: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    quoted: "bg-green-500/10 text-green-400 border-green-500/20",
+    completed: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+    cancelled: "bg-red-500/10 text-red-400 border-red-500/20",
   };
   const style = styles[status] || "bg-gray-500/10 text-gray-400 border-gray-500/20";
-  
+
   return (
     <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium capitalize ${style}`}>
       {status}
@@ -39,7 +40,7 @@ export default async function AdminQuotesPage({
 
   let query = supabase
     .from("quote_requests")
-    .select("id, name, email, project_type, budget, status, created_at")
+    .select("id, name, email, project_type, budget_range, status, created_at")
     .order("created_at", { ascending: false });
 
   if (status && status !== "all") {
@@ -47,17 +48,23 @@ export default async function AdminQuotesPage({
   }
 
   const { data: quotes } = (await query) as { data: QuoteRequest[] | null };
-  const statuses = ["all", "pending", "reviewed", "accepted", "rejected"];
+  const statuses = ["all", "pending", "reviewing", "quoted", "completed", "cancelled"];
 
   return (
     <main className="min-h-screen px-6 py-12 bg-[var(--bg)]">
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-widest text-[var(--accent)]">Portfolio CMS</p>
-            <h1 className="mt-2 text-4xl font-bold text-[var(--text)]">Quotation Requests</h1>
+            <p className="text-sm font-semibold uppercase tracking-widest text-[var(--accent)]">
+              Portfolio CMS
+            </p>
+            <h1 className="mt-2 text-4xl font-bold text-[var(--text)]">
+              Quotation Requests
+            </h1>
           </div>
-          <Link href="/admin" className="btn-secondary">← Back to Dashboard</Link>
+          <Link href="/admin" className="btn-secondary">
+            â† Back to Dashboard
+          </Link>
         </div>
 
         <div className="flex flex-wrap gap-2 mb-6">
@@ -86,7 +93,7 @@ export default async function AdminQuotesPage({
                 <tr>
                   <th className="px-6 py-4 font-semibold">Client</th>
                   <th className="px-6 py-4 font-semibold">Project Type</th>
-                  <th className="px-6 py-4 font-semibold">Budget</th>
+                  <th className="px-6 py-4 font-semibold">Budget Range</th>
                   <th className="px-6 py-4 font-semibold">Status</th>
                   <th className="px-6 py-4 font-semibold">Date</th>
                   <th className="px-6 py-4 font-semibold text-right">Actions</th>
@@ -100,18 +107,33 @@ export default async function AdminQuotesPage({
                         <div className="font-medium text-[var(--text)]">{quote.name}</div>
                         <div className="text-xs text-[var(--muted)]">{quote.email}</div>
                       </td>
-                      <td className="px-6 py-4 text-[var(--text)] capitalize">{quote.project_type}</td>
-                      <td className="px-6 py-4 text-[var(--text)]">{quote.budget}</td>
-                      <td className="px-6 py-4"><StatusBadge status={quote.status} /></td>
-                      <td className="px-6 py-4 text-[var(--muted)]">{new Date(quote.created_at).toLocaleDateString()}</td>
+                      <td className="px-6 py-4 text-[var(--text)] capitalize">
+                        {quote.project_type}
+                      </td>
+                      <td className="px-6 py-4 text-[var(--text)]">
+                        {quote.budget_range}
+                      </td>
+                      <td className="px-6 py-4">
+                        <StatusBadge status={quote.status} />
+                      </td>
+                      <td className="px-6 py-4 text-[var(--muted)]">
+                        {new Date(quote.created_at).toLocaleDateString()}
+                      </td>
                       <td className="px-6 py-4 text-right">
-                        <Link href={`/admin/quotes/${quote.id}`} className="text-[var(--accent)] hover:text-[var(--accent-2)] font-medium">View Details</Link>
+                        <Link
+                          href={`/admin/quotes/${quote.id}`}
+                          className="text-[var(--accent)] hover:text-[var(--accent-2)] font-medium"
+                        >
+                          View Details
+                        </Link>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-[var(--muted)]">No quotation requests found for this filter.</td>
+                    <td colSpan={6} className="px-6 py-12 text-center text-[var(--muted)]">
+                      No quotation requests found for this filter.
+                    </td>
                   </tr>
                 )}
               </tbody>

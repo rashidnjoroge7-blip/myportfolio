@@ -8,17 +8,18 @@ type QuoteRequest = {
   name: string;
   email: string;
   project_type: string;
-  budget: string;
-  status: "pending" | "reviewed" | "accepted" | "rejected";
+  budget_range: string;
+  status: "pending" | "reviewing" | "quoted" | "completed" | "cancelled";
   created_at: string;
 };
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
     pending: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-    reviewed: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-    accepted: "bg-green-500/10 text-green-400 border-green-500/20",
-    rejected: "bg-red-500/10 text-red-400 border-red-500/20",
+    reviewing: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    quoted: "bg-green-500/10 text-green-400 border-green-500/20",
+    completed: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+    cancelled: "bg-red-500/10 text-red-400 border-red-500/20",
   };
   const style =
     styles[status] || "bg-gray-500/10 text-gray-400 border-gray-500/20";
@@ -43,7 +44,7 @@ export default async function AdminQuotesPage({
 
   let query = supabase
     .from("quote_requests")
-    .select("id, name, email, project_type, budget, status, created_at")
+    .select("id, name, email, project_type, budget_range, status, created_at")
     .order("created_at", { ascending: false });
 
   if (status && status !== "all") {
@@ -51,7 +52,14 @@ export default async function AdminQuotesPage({
   }
 
   const { data: quotes } = (await query) as { data: QuoteRequest[] | null };
-  const statuses = ["all", "pending", "reviewed", "accepted", "rejected"];
+  const statuses = [
+    "all",
+    "pending",
+    "reviewing",
+    "quoted",
+    "completed",
+    "cancelled",
+  ];
 
   return (
     <main className="min-h-screen px-6 py-12 bg-[var(--bg)]">
@@ -96,7 +104,7 @@ export default async function AdminQuotesPage({
                 <tr>
                   <th className="px-6 py-4 font-semibold">Client</th>
                   <th className="px-6 py-4 font-semibold">Project Type</th>
-                  <th className="px-6 py-4 font-semibold">Budget</th>
+                  <th className="px-6 py-4 font-semibold">Budget Range</th>
                   <th className="px-6 py-4 font-semibold">Status</th>
                   <th className="px-6 py-4 font-semibold">Date</th>
                   <th className="px-6 py-4 font-semibold text-right">
@@ -123,7 +131,7 @@ export default async function AdminQuotesPage({
                         {quote.project_type}
                       </td>
                       <td className="px-6 py-4 text-[var(--text)]">
-                        {quote.budget}
+                        {quote.budget_range}
                       </td>
                       <td className="px-6 py-4">
                         <StatusBadge status={quote.status} />

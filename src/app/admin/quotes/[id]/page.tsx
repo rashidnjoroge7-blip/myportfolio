@@ -1,10 +1,10 @@
 ﻿// src/app/admin/quotes/[id]/page.tsx
-import { convertQuoteToProject } from "./convertToProject";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { updateQuoteStatus } from "./actions";
+import { convertQuoteToProject } from "./convertToProject";
 
 export default async function QuoteDetailPage({
   params,
@@ -65,15 +65,27 @@ export default async function QuoteDetailPage({
                   </dd>
                 </div>
                 <div>
+                  <dt className="text-[var(--muted)]">Company</dt>
+                  <dd className="font-medium text-[var(--text)]">
+                    {quote.company || "N/A"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[var(--muted)]">Phone</dt>
+                  <dd className="font-medium text-[var(--text)]">
+                    {quote.phone || "N/A"}
+                  </dd>
+                </div>
+                <div>
                   <dt className="text-[var(--muted)]">Project Type</dt>
                   <dd className="font-medium text-[var(--text)] capitalize">
                     {quote.project_type}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-[var(--muted)]">Budget</dt>
+                  <dt className="text-[var(--muted)]">Budget Range</dt>
                   <dd className="font-medium text-[var(--text)]">
-                    {quote.budget}
+                    {quote.budget_range}
                   </dd>
                 </div>
                 <div className="sm:col-span-2">
@@ -90,15 +102,13 @@ export default async function QuoteDetailPage({
                 Requirements
               </h2>
               <div className="text-sm text-[var(--text)] whitespace-pre-wrap">
-                {quote.features || "No specific features listed."}
+                {quote.project_description || "No description provided."}
               </div>
-              {quote.message && (
+              {quote.features && (
                 <div className="mt-4 pt-4 border-t border-[var(--card-border)]">
-                  <dt className="text-[var(--muted)] text-sm mb-1">
-                    Additional Message
-                  </dt>
+                  <dt className="text-[var(--muted)] text-sm mb-1">Features</dt>
                   <dd className="text-sm text-[var(--text)] whitespace-pre-wrap">
-                    {quote.message}
+                    {quote.features}
                   </dd>
                 </div>
               )}
@@ -107,7 +117,8 @@ export default async function QuoteDetailPage({
 
           {/* Right: Actions */}
           <div className="md:col-span-1">
-            {quote.status === "accepted" && (
+            {/* Convert to Project Form (Only shows if status is 'quoted') */}
+            {quote.status === "quoted" && (
               <form
                 action={convertQuoteToProject}
                 className="rounded-2xl border border-[var(--accent)] bg-[var(--surface)] p-6 space-y-4 mb-6"
@@ -141,6 +152,8 @@ export default async function QuoteDetailPage({
                 </p>
               </form>
             )}
+
+            {/* Update Status Form */}
             <form
               action={updateQuoteStatus}
               className="rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] p-6 space-y-4 sticky top-6"
@@ -161,9 +174,10 @@ export default async function QuoteDetailPage({
                   className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                 >
                   <option value="pending">Pending</option>
-                  <option value="reviewed">Reviewed</option>
-                  <option value="accepted">Accepted</option>
-                  <option value="rejected">Rejected</option>
+                  <option value="reviewing">Reviewing</option>
+                  <option value="quoted">Quoted</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
                 </select>
               </div>
 
@@ -172,14 +186,14 @@ export default async function QuoteDetailPage({
                   htmlFor="adminNotes"
                   className="block text-sm font-medium text-[var(--text)] mb-1"
                 >
-                  Internal Notes
+                  Quote Notes
                 </label>
                 <textarea
                   name="adminNotes"
                   id="adminNotes"
                   rows={4}
-                  defaultValue={quote.admin_notes || ""}
-                  placeholder="Add private notes here..."
+                  defaultValue={quote.quote_notes || ""}
+                  placeholder="Add internal notes here..."
                   className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                 />
               </div>
@@ -191,7 +205,7 @@ export default async function QuoteDetailPage({
                 Save & Notify Client
               </button>
               <p className="text-xs text-[var(--muted)] text-center">
-                *Accept/Reject triggers an email to the client.
+                *Setting to 'Quoted' or 'Completed' triggers an email.
               </p>
             </form>
           </div>

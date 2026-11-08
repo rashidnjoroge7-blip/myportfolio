@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/adminAuth";
@@ -22,7 +22,7 @@ export async function updateQuoteStatus(formData: FormData): Promise<void> {
     .from("quote_requests")
     .update({
       status,
-      admin_notes: adminNotes,
+      quote_notes: adminNotes,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id);
@@ -31,14 +31,14 @@ export async function updateQuoteStatus(formData: FormData): Promise<void> {
 
   const { data: quote } = await supabase
     .from("quote_requests")
-    .select("name, email, project_type, budget")
+    .select("name, email, project_type, budget_range")
     .eq("id", id)
     .single();
 
-  if (quote && (status === "accepted" || status === "rejected")) {
+  if (quote && (status === "quoted" || status === "cancelled")) {
     const subject = `Update on your ${quote.project_type} quotation request`;
-    const text = `Hi ${quote.name},\n\nYour quotation request for a ${quote.project_type} project (Budget: ${quote.budget}) has been ${status}.\n\nWe will be in touch shortly with the next steps.\n\nBest regards,\nRashid`;
-    const html = `<p>Hi ${quote.name},</p><p>Your quotation request for a ${quote.project_type} project (Budget: ${quote.budget}) has been <strong>${status}</strong>.</p><p>We will be in touch shortly with the next steps.</p><p>Best regards,<br>Rashid</p>`;
+    const text = `Hi ${quote.name},\n\nYour quotation request for a ${quote.project_type} project (budget_range: ${quote.budget_range}) has been ${status}.\n\nWe will be in touch shortly with the next steps.\n\nBest regards,\nRashid`;
+    const html = `<p>Hi ${quote.name},</p><p>Your quotation request for a ${quote.project_type} project (budget_range: ${quote.budget_range}) has been <strong>${status}</strong>.</p><p>We will be in touch shortly with the next steps.</p><p>Best regards,<br>Rashid</p>`;
 
     await sendEmail({
       to: quote.email,

@@ -44,3 +44,23 @@ next-env.d.ts
 *.swp
 *.swo
 *~
+# Keep the example environment template in Git
+!.env.example
+
+# Local database diagnostic scripts
+check-db-env.cjs
+test-db-connection.cjs
+test-prisma.cjs
+
+# Supabase temporary files
+supabase/.temp/
+
+# Local AI coding tools and installed skill resources
+.agents/
+.aider-desk/
+.autohand/
+.claude/
+.cursor/
+.devin/
+skills/
+skills-lock.json

@@ -1,4 +1,4 @@
-﻿import nodemailer from "nodemailer";
+﻿import { SMTPClient } from "emailjs";
 import { siteConfig } from "./siteConfig";
 
 type EmailOptions = {
@@ -21,25 +21,7 @@ const isSmtpConfigured = Boolean(
   SMTP_HOST && SMTP_PORT && SMTP_USER && SMTP_PASS
 );
 
-async function createTransport() {
-  if (!isSmtpConfigured) {
-    return null;
-  }
-
-  return nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: Number(SMTP_PORT),
-    secure: Number(SMTP_PORT) === 465,
-    auth: {
-      user: SMTP_USER,
-      pass: SMTP_PASS,
-    },
-  });
-}
-
 export async function sendEmail(options: EmailOptions) {
-  const transport = await createTransport();
-
   const message = {
     from: EMAIL_FROM || SMTP_USER || "no-reply@example.com",
     to: options.to || EMAIL_TO || siteConfig.email || "hello@example.com",
@@ -48,7 +30,7 @@ export async function sendEmail(options: EmailOptions) {
     html: options.html,
   };
 
-  if (!transport) {
+  if (!isSmtpConfigured) {
     console.warn(
       "[email] SMTP is not configured. Falling back to console output."
     );
@@ -56,5 +38,33 @@ export async function sendEmail(options: EmailOptions) {
     return;
   }
 
-  await transport.sendMail(message);
+  const port = Number(SMTP_PORT);
+
+  const client = new SMTPClient({
+    host: SMTP_HOST!,
+    port,
+    user: SMTP_USER!,
+    password: SMTP_PASS!,
+    ssl: port === 465,
+    tls: port === 587,
+    timeout: 15000,
+  });
+
+  try {
+    await client.sendAsync({
+      from: message.from,
+      to: message.to,
+      subject: message.subject,
+      text: message.text,
+      attachment: [
+        {
+          data: message.html,
+          alternative: true,
+          contentType: "text/html",
+        },
+      ],
+    });
+  } finally {
+    client.smtp.close();
+  }
 }

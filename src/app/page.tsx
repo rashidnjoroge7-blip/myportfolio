@@ -14,22 +14,22 @@ export default async function Home() {
       {/* Hero Section */}
       <section
         id="hero"
-        className="flex min-h-screen items-center justify-center px-6 py-20 fade-in"
+        className="flex min-h-screen items-center justify-center px-6 py-24 fade-in md:py-28"
       >
         <div className="mx-auto w-full max-w-6xl">
-          <div className="grid items-center gap-12 md:grid-cols-2">
-            <div className="stagger-1">
-              <div className="mb-6 inline-block rounded-full border border-[var(--card-border)] bg-[var(--surface)] px-4 py-2">
+          <div className="grid items-center gap-14 md:grid-cols-2 lg:gap-20">
+            <div className="stagger-1 max-w-xl">
+              <div className="mb-7 inline-block rounded-full border border-[var(--card-border)] bg-[var(--surface)] px-5 py-2.5 shadow-sm">
                 <p className="text-sm text-[var(--accent-2)]">
                   Welcome to UniHost Technologies
                 </p>
               </div>
 
-              <h1 className="section-title mb-6 text-5xl md:text-6xl">
+              <h1 className="section-title mb-6 text-5xl leading-tight tracking-tight md:text-6xl lg:text-7xl">
                 Hi, I&apos;m {siteConfig.name}
               </h1>
 
-              <p className="mb-8 text-xl text-[var(--muted)]">
+              <p className="hero-intro mb-9 max-w-xl text-lg leading-relaxed md:text-xl">
                 {siteConfig.tagline}. Let&apos;s build something extraordinary
                 together.
               </p>
@@ -48,23 +48,23 @@ export default async function Home() {
               </div>
 
               {/* Highlights */}
-              <div className="mt-12 grid grid-cols-3 gap-5">
+              <div className="mt-14 grid grid-cols-3 gap-4 sm:gap-6">
                 <div>
-                  <p className="text-3xl font-bold text-[var(--accent-3)]">
+                  <p className="text-2xl font-bold text-[var(--accent-3)] md:text-3xl">
                     Projects
                   </p>
                   <p className="text-sm text-[var(--muted)]">Selected work</p>
                 </div>
 
                 <div>
-                  <p className="text-3xl font-bold text-[var(--accent-2)]">
+                  <p className="text-2xl font-bold text-[var(--accent-2)] md:text-3xl">
                     Modern
                   </p>
                   <p className="text-sm text-[var(--muted)]">Web experiences</p>
                 </div>
 
                 <div>
-                  <p className="text-3xl font-bold text-[var(--accent-3)]">
+                  <p className="text-2xl font-bold text-[var(--accent-3)] md:text-3xl">
                     Reliable
                   </p>
                   <p className="text-sm text-[var(--muted)]">
@@ -80,7 +80,7 @@ export default async function Home() {
                 <div className="rounded-xl bg-gradient-to-br from-[var(--accent-3)] to-[var(--accent-2)] p-1">
                   <div className="flex min-h-56 items-center justify-center rounded-lg bg-[var(--surface)] p-10 text-center">
                     <div>
-                      <div className="mb-4 text-6xl">💻</div>
+                      <div className="mb-4 text-6xl">&#128187;</div>
                       <p className="font-semibold text-[var(--accent-3)]">
                         Digital products built with care
                       </p>
@@ -101,7 +101,7 @@ export default async function Home() {
           <div className="mx-auto max-w-5xl">
             <div className="mb-8 flex items-end justify-between gap-4">
               <div>
-                <p className="text-sm uppercase tracking-widest text-[var(--accent)]">
+                <p className="eyebrow-label text-sm uppercase tracking-widest">
                   Selected work
                 </p>
 
@@ -110,9 +110,9 @@ export default async function Home() {
 
               <Link
                 href="/projects"
-                className="text-[var(--accent-2)] hover:underline"
+                className="content-link hover:underline"
               >
-                All projects →
+                All projects &#8594;
               </Link>
             </div>
 
@@ -130,7 +130,7 @@ export default async function Home() {
                     />
                   ) : (
                     <div className="mb-4 flex aspect-video items-center justify-center rounded-xl bg-[var(--surface-alt)] text-5xl">
-                      💻
+                      &#128187;
                     </div>
                   )}
 
@@ -144,9 +144,9 @@ export default async function Home() {
 
                   <Link
                     href="/projects"
-                    className="mt-4 inline-block text-sm text-[var(--accent-2)]"
+                    className="content-link mt-4 inline-block text-sm"
                   >
-                    Project details →
+                    Project details &#8594;
                   </Link>
                 </article>
               ))}
@@ -160,7 +160,7 @@ export default async function Home() {
         <div className="mx-auto max-w-5xl">
           <div className="grid gap-6 md:grid-cols-3">
             <div className="card">
-              <div className="mb-4 text-4xl">💻</div>
+              <div className="mb-4 text-4xl">&#128187;</div>
               <h3 className="mb-2 text-xl font-semibold">Web Development</h3>
               <p className="text-[var(--muted)]">
                 Creating responsive, performant web applications.
@@ -168,7 +168,7 @@ export default async function Home() {
             </div>
 
             <div className="card">
-              <div className="mb-4 text-4xl">🎨</div>
+              <div className="mb-4 text-4xl">&#127912;</div>
               <h3 className="mb-2 text-xl font-semibold">UI/UX Design</h3>
               <p className="text-[var(--muted)]">
                 Designing intuitive and useful interfaces.
@@ -176,7 +176,7 @@ export default async function Home() {
             </div>
 
             <div className="card">
-              <div className="mb-4 text-4xl">⚡</div>
+              <div className="mb-4 text-4xl">&#9889;</div>
               <h3 className="mb-2 text-xl font-semibold">Performance</h3>
               <p className="text-[var(--muted)]">
                 Building optimized digital solutions.
@@ -198,7 +198,7 @@ export default async function Home() {
                 href={`/tech/${tech.slug}`}
                 className="card block text-center"
               >
-                <div className="mb-2 text-3xl">{tech.icon ?? "🔧"}</div>
+                <div className="mb-2 text-3xl">{tech.icon ?? "\u{1F527}"}</div>
 
                 <p className="font-semibold">{tech.name}</p>
 
@@ -215,16 +215,16 @@ export default async function Home() {
 
       {/* Call To Action */}
       <section className="px-6 py-20">
-        <div className="mx-auto max-w-4xl rounded-2xl border border-[var(--accent)] bg-gradient-to-r from-[var(--accent-3)] to-[var(--accent-2)] p-12 text-center">
-          <h2 className="mb-4 text-3xl font-bold text-white">
+        <div className="cta-panel mx-auto max-w-4xl rounded-2xl border p-10 text-center md:p-12">
+          <h2 className="cta-title mb-4 text-3xl font-bold">
             Ready to work together?
           </h2>
 
-          <p className="mb-8 text-[var(--text)]/80">
+          <p className="cta-copy mb-8">
             Let&apos;s discuss your next project.
           </p>
 
-          <Link href="/contact" className="btn-secondary">
+          <Link href="/contact" className="btn-primary">
             Start a Conversation
           </Link>
         </div>

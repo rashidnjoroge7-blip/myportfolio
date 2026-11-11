@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { usePathname } from "next/navigation";
 
 type Theme = "dark" | "light";
 
@@ -54,6 +55,7 @@ export default function ThemeNavbar() {
     getServerThemeSnapshot,
   );
 
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
 
@@ -136,11 +138,8 @@ export default function ThemeNavbar() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`transition-colors ${
-                  item.accent
-                    ? "text-[var(--accent-2)] hover:text-[var(--accent)]"
-                    : "hover:text-[var(--accent)]"
-                }`}
+                className={`nav-link ${item.accent ? "nav-link-accent" : ""}`}
+                aria-current={pathname === item.href ? "page" : undefined}
               >
                 {item.label}
               </Link>
@@ -161,7 +160,7 @@ export default function ThemeNavbar() {
               aria-label="Toggle theme"
               title="Toggle light and dark mode"
             >
-              {theme === "dark" ? "☀️" : "🌙"}
+              {theme === "dark" ? "\u2600\uFE0F" : "\u{1F319}"}
             </button>
 
             {/* Mobile Menu Toggle */}
@@ -172,7 +171,7 @@ export default function ThemeNavbar() {
               aria-label="Toggle navigation menu"
               aria-expanded={menuOpen}
             >
-              {menuOpen ? "✕" : "☰"}
+              {menuOpen ? "\u2715" : "\u2630"}
             </button>
           </div>
         </div>
@@ -180,7 +179,7 @@ export default function ThemeNavbar() {
         {/* Mobile Navigation */}
         <div
           className={`overflow-hidden transition-[max-height] duration-300 md:hidden ${
-            menuOpen ? "max-h-64" : "max-h-0"
+            menuOpen ? "max-h-96" : "max-h-0"
           }`}
         >
           <div className="space-y-2 border-t border-[var(--card-border)] bg-[var(--surface-alt)] px-6 py-4">
@@ -188,11 +187,8 @@ export default function ThemeNavbar() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`block rounded-xl px-4 py-3 transition-colors ${
-                  item.accent
-                    ? "text-[var(--accent-2)] hover:bg-[var(--surface)]"
-                    : "hover:bg-[var(--surface)]"
-                }`}
+                className={`mobile-nav-link block rounded-xl px-4 py-3 transition-colors ${item.accent ? "mobile-nav-link-accent" : ""}`}
+                aria-current={pathname === item.href ? "page" : undefined}
                 onClick={() => setMenuOpen(false)}
               >
                 {item.label}
@@ -201,7 +197,7 @@ export default function ThemeNavbar() {
 
             <Link
               href="/contact"
-              className="block rounded-xl bg-[var(--accent)] px-4 py-3 text-center font-medium text-white transition hover:bg-[var(--accent-3)]"
+              className="mobile-contact-link block rounded-xl px-4 py-3 text-center font-medium text-white transition-colors"
               onClick={() => setMenuOpen(false)}
             >
               Contact

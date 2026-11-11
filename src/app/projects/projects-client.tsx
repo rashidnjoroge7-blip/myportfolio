@@ -70,7 +70,7 @@ export default function ProjectsClient({ projects, github }: Props) {
               {filteredProjects.map((project, index) => (
                 <article
                   key={project.id}
-                  className={`card group flex flex-col overflow-hidden hover-card stagger-${(index % 5) + 1}`}
+                  className={`card project-card group flex flex-col overflow-hidden hover-card stagger-${(index % 5) + 1}`}
                 >
                   {project.image_url ? (
                     <Image
@@ -79,14 +79,15 @@ export default function ProjectsClient({ projects, github }: Props) {
                       width={800}
                       height={450}
                       unoptimized
-                      className="mb-4 h-48 w-full rounded-xl object-cover"
+                      className="h-48 w-full object-cover"
                     />
                   ) : (
-                    <div className="mb-4 flex h-40 items-center justify-center rounded-xl bg-[var(--surface-alt)] text-5xl">
+                    <div className="flex h-48 w-full items-center justify-center bg-[var(--surface-alt)] text-5xl">
                       &lt;/&gt;
                     </div>
                   )}
 
+                  <div className="flex flex-1 flex-col p-5 sm:p-6">
                   {/* Project Details */}
                   <p className="mb-2 text-xs uppercase text-[var(--accent-2)]">
                     {project.category}
@@ -143,6 +144,7 @@ export default function ProjectsClient({ projects, github }: Props) {
                     >
                       Get a Quote →
                     </Link>
+                  </div>
                   </div>
                 </article>
               ))}

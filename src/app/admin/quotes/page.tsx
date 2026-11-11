@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -63,7 +63,7 @@ export default async function AdminQuotesPage({
             </h1>
           </div>
           <Link href="/admin" className="btn-secondary">
-            â† Back to Dashboard
+            &#8592; Back to Dashboard
           </Link>
         </div>
 
@@ -77,7 +77,7 @@ export default async function AdminQuotesPage({
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
                   isActive
                     ? "bg-[var(--accent)] text-white border-[var(--accent)]"
-                    : "bg-[var(--surface)] text-[var(--muted)] border-[var(--card-border)] hover:border-[var(--accent)]"
+                    : "bg-slate-800 text-slate-200 border-slate-600 hover:bg-slate-700 hover:border-amber-400 hover:text-white"
                 }`}
               >
                 {s.charAt(0).toUpperCase() + s.slice(1)}
@@ -89,7 +89,7 @@ export default async function AdminQuotesPage({
         <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-[var(--bg)] text-[var(--muted)] uppercase tracking-wider">
+              <thead className="bg-slate-800 text-slate-100 uppercase tracking-wider">
                 <tr>
                   <th className="px-6 py-4 font-semibold">Client</th>
                   <th className="px-6 py-4 font-semibold">Project Type</th>
@@ -105,7 +105,7 @@ export default async function AdminQuotesPage({
                     <tr key={quote.id} className="hover:bg-[var(--bg)]/50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="font-medium text-[var(--text)]">{quote.name}</div>
-                        <div className="text-xs text-[var(--muted)]">{quote.email}</div>
+                        <div className="text-xs text-slate-300">{quote.email}</div>
                       </td>
                       <td className="px-6 py-4 text-[var(--text)] capitalize">
                         {quote.project_type}
@@ -116,13 +116,13 @@ export default async function AdminQuotesPage({
                       <td className="px-6 py-4">
                         <StatusBadge status={quote.status} />
                       </td>
-                      <td className="px-6 py-4 text-[var(--muted)]">
+                      <td className="px-6 py-4 text-slate-200">
                         {new Date(quote.created_at).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <Link
                           href={`/admin/quotes/${quote.id}`}
-                          className="text-[var(--accent)] hover:text-[var(--accent-2)] font-medium"
+                          className="text-amber-400 hover:text-amber-300 font-semibold transition-colors"
                         >
                           View Details
                         </Link>
@@ -131,7 +131,7 @@ export default async function AdminQuotesPage({
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-[var(--muted)]">
+                    <td colSpan={6} className="px-6 py-12 text-center text-slate-300">
                       No quotation requests found for this filter.
                     </td>
                   </tr>

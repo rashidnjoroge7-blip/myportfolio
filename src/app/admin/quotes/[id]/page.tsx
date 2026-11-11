@@ -8,11 +8,14 @@ import { convertQuoteToProject } from "./convertToProject";
 
 export default async function QuoteDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ success?: string }>;
 }) {
   await requireAdmin();
   const { id } = await params;
+  const { success } = await searchParams;
   const supabase = getSupabaseAdmin();
 
   const { data: quote } = await supabase
@@ -44,6 +47,18 @@ export default async function QuoteDetailPage({
           </span>
         </div>
 
+        {success === "updated" && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="mb-6 flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-4 text-sm font-medium text-emerald-700 dark:text-emerald-400"
+          >
+            <span className="text-lg" aria-hidden="true">✓</span>
+            <span>
+              Quotation status updated successfully. Changes have been saved.
+            </span>
+          </div>
+        )}
         <div className="grid gap-6 md:grid-cols-3">
           {/* Left: Client Details */}
           <div className="md:col-span-2 space-y-6">
@@ -214,3 +229,4 @@ export default async function QuoteDetailPage({
     </main>
   );
 }
+

@@ -1,6 +1,7 @@
 ﻿"use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { sendEmail } from "@/lib/email";
@@ -50,4 +51,7 @@ export async function updateQuoteStatus(formData: FormData): Promise<void> {
 
   revalidatePath(`/admin/quotes/${id}`);
   revalidatePath("/admin/quotes");
+  redirect(`/admin/quotes/${id}?success=updated`);
 }
+
+

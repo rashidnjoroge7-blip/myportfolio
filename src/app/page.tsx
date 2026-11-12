@@ -1,4 +1,4 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import Link from "next/link";
 import { siteConfig } from "../lib/siteConfig";
 import { TECHS } from "../lib/techData";
@@ -50,24 +50,28 @@ export default async function Home() {
               {/* Highlights */}
               <div className="mt-14 grid grid-cols-3 gap-4 sm:gap-6">
                 <div>
-                  <p className="text-2xl font-bold text-[var(--accent-3)] md:text-3xl">
+                  <p className="text-2xl font-bold text-white md:text-3xl">
                     Projects
                   </p>
-                  <p className="text-sm text-[var(--muted)]">Selected work</p>
+                  <p className="text-sm text-white">Selected work</p>
                 </div>
 
                 <div>
-                  <p className="text-2xl font-bold text-[var(--accent-2)] md:text-3xl">
+                  <p className="text-2xl font-bold text-text-white
+ md:text-3xl">
                     Modern
                   </p>
-                  <p className="text-sm text-[var(--muted)]">Web experiences</p>
+                  <p className="text-sm text-text-white
+">Web experiences</p>
                 </div>
 
                 <div>
-                  <p className="text-2xl font-bold text-[var(--accent-3)] md:text-3xl">
+                  <p className="text-2xl font-bold text-text-white
+ md:text-3xl">
                     Reliable
                   </p>
-                  <p className="text-sm text-[var(--muted)]">
+                  <p className="text-sm text-text-white
+">
                     Delivery mindset
                   </p>
                 </div>
@@ -81,7 +85,7 @@ export default async function Home() {
                   <div className="flex min-h-56 items-center justify-center rounded-lg bg-[var(--surface)] p-10 text-center">
                     <div>
                       <div className="mb-4 text-6xl">&#128187;</div>
-                      <p className="font-semibold text-[var(--accent-3)]">
+                      <p className="font-semibold text-white">
                         Digital products built with care
                       </p>
                     </div>
@@ -138,7 +142,7 @@ export default async function Home() {
                     {project.title}
                   </h3>
 
-                  <p className="line-clamp-3 text-sm text-[var(--muted)]">
+                  <p className="line-clamp-3 text-sm text-[var(--muted)]	]">
                     {project.description}
                   </p>
 
@@ -232,3 +236,4 @@ export default async function Home() {
     </div>
   );
 }
+

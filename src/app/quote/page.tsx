@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent, FocusEvent } from "react";
@@ -33,9 +33,9 @@ const initialFormData: FormData = {
 };
 
 const inputClass =
-  "w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-slate-100 outline-none transition focus:border-[var(--color-dark-blue-600)] focus:ring-2 focus:ring-[var(--color-dark-blue-600)]/20";
+  "w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-400 [color-scheme:dark] outline-none transition focus:border-[var(--color-dark-blue-600)] focus:ring-2 focus:ring-[var(--color-dark-blue-600)]/20";
 
-const labelClass = "mb-2 block text-sm font-medium text-slate-300";
+const labelClass = "mb-2 block text-sm font-semibold text-white";
 
 const projectTypes = [
   "Website Development",
@@ -303,7 +303,7 @@ export default function RequestQuote() {
         <div className="mx-auto max-w-4xl">
           {submitted ? (
             <div className="card border-2 border-emerald-500/40 p-10 text-center">
-              <div className="mb-5 text-6xl text-emerald-400">✓</div>
+              <div className="mb-5 text-6xl text-emerald-400">âœ“</div>
 
               <h2 className="mb-3 text-3xl font-bold text-white">Thank You!</h2>
 
@@ -360,7 +360,7 @@ export default function RequestQuote() {
               {/* SECTION 1: Personal Information */}
               <div className="card space-y-5 p-6 md:p-8">
                 <div>
-                  <h2 className="text-xl font-bold text-[var(--color-dark-blue-400)]">
+                  <h2 className="text-xl font-bold text-white">
                     01. Your Information
                   </h2>
 
@@ -457,7 +457,7 @@ export default function RequestQuote() {
               {/* SECTION 2: Project Details */}
               <div className="card space-y-5 p-6 md:p-8">
                 <div>
-                  <h2 className="text-xl font-bold text-[var(--color-forest-green-400)]">
+                  <h2 className="text-xl font-bold text-white">
                     02. Project Requirements
                   </h2>
 
@@ -567,7 +567,7 @@ export default function RequestQuote() {
               {/* SECTION 3: Budget and Timeline */}
               <div className="card space-y-5 p-6 md:p-8">
                 <div>
-                  <h2 className="text-xl font-bold text-[var(--color-dark-blue-400)]">
+                  <h2 className="text-xl font-bold text-white">
                     03. Budget & Timeline
                   </h2>
 
@@ -644,7 +644,7 @@ export default function RequestQuote() {
               {/* Information */}
               <div className="rounded-xl border border-[var(--color-dark-blue-600)] bg-[var(--color-dark-blue-900)]/20 p-5">
                 <p className="text-sm leading-relaxed text-slate-300">
-                  <strong className="text-[var(--color-dark-blue-400)]">
+                  <strong className="text-white">
                     What happens next?
                   </strong>
                   <br />
@@ -668,7 +668,7 @@ export default function RequestQuote() {
                 >
                   {submitting
                     ? "Submitting Request..."
-                    : "Submit Quote Request →"}
+                    : "Submit Quote Request â†’"}
                 </button>
 
                 <a href="/contact" className="btn-secondary flex-1 text-center">
@@ -713,7 +713,7 @@ export default function RequestQuote() {
               },
             ].map((item) => (
               <div key={item.title} className="card">
-                <h3 className="mb-2 text-lg font-semibold text-[var(--color-dark-blue-400)]">
+                <h3 className="mb-2 text-lg font-semibold text-white">
                   {item.title}
                 </h3>
 
@@ -726,3 +726,4 @@ export default function RequestQuote() {
     </div>
   );
 }
+

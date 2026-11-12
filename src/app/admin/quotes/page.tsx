@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -55,10 +55,10 @@ export default async function AdminQuotesPage({
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-widest text-[var(--accent)]">
+            <p className="text-sm font-semibold uppercase tracking-widest !text-white">
               Portfolio CMS
             </p>
-            <h1 className="mt-2 text-4xl font-bold text-[var(--text)]">
+            <h1 className="mt-2 text-4xl font-bold !text-white">
               Quotation Requests
             </h1>
           </div>
@@ -76,9 +76,10 @@ export default async function AdminQuotesPage({
                 href={`/admin/quotes${s === "all" ? "" : `?status=${s}`}`}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
                   isActive
-                    ? "bg-[var(--accent)] text-white border-[var(--accent)]"
-                    : "bg-slate-800 text-slate-200 border-slate-600 hover:bg-slate-700 hover:border-amber-400 hover:text-white"
+                    ? "bg-[var(--accent)] !text-white border-[var(--accent)]"
+                    : "bg-slate-800 !text-white border-slate-600 hover:bg-slate-700 hover:border-amber-400 hover:text-white"
                 }`}
+                style={{ color: '#ffffff' }}
               >
                 {s.charAt(0).toUpperCase() + s.slice(1)}
               </Link>
@@ -88,14 +89,15 @@ export default async function AdminQuotesPage({
 
         <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-800 text-slate-100 uppercase tracking-wider">
+            <table className="w-full min-w-[1150px] text-left text-sm">
+              <thead className="bg-slate-800 !text-white uppercase tracking-wider">
                 <tr>
                   <th className="px-6 py-4 font-semibold">Client</th>
+                  <th className="px-6 py-4 font-semibold">Email</th>
                   <th className="px-6 py-4 font-semibold">Project Type</th>
                   <th className="px-6 py-4 font-semibold">Budget Range</th>
                   <th className="px-6 py-4 font-semibold">Status</th>
-                  <th className="px-6 py-4 font-semibold">Date</th>
+                  <th className="min-w-[150px] whitespace-nowrap px-6 py-4 font-semibold" style={{ color: "#ffffff" }}>Date</th>
                   <th className="px-6 py-4 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
@@ -103,20 +105,22 @@ export default async function AdminQuotesPage({
                 {quotes && quotes.length > 0 ? (
                   quotes.map((quote) => (
                     <tr key={quote.id} className="hover:bg-[var(--bg)]/50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="font-medium text-[var(--text)]">{quote.name}</div>
-                        <div className="text-xs text-slate-300">{quote.email}</div>
+                      <td className="px-6 py-4 font-medium !text-white whitespace-nowrap">
+                        {quote.name}
                       </td>
-                      <td className="px-6 py-4 text-[var(--text)] capitalize">
+                      <td className="px-6 py-4 text-white whitespace-nowrap">
+                        {quote.email}
+                      </td>
+                      <td className="px-6 py-4 !text-white capitalize">
                         {quote.project_type}
                       </td>
-                      <td className="px-6 py-4 text-[var(--text)]">
+                      <td className="px-6 py-4 !text-white">
                         {quote.budget_range}
                       </td>
                       <td className="px-6 py-4">
                         <StatusBadge status={quote.status} />
                       </td>
-                      <td className="px-6 py-4 text-slate-200">
+                      <td className="min-w-[150px] whitespace-nowrap px-6 py-4 font-bold" style={{ color: "#ffffff" }}>
                         {new Date(quote.created_at).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 text-right">
@@ -131,7 +135,7 @@ export default async function AdminQuotesPage({
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-slate-300">
+                    <td colSpan={7} className="px-6 py-12 text-center !text-white">
                       No quotation requests found for this filter.
                     </td>
                   </tr>
@@ -144,3 +148,9 @@ export default async function AdminQuotesPage({
     </main>
   );
 }
+
+
+
+
+
+

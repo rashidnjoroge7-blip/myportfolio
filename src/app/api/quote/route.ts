@@ -1,11 +1,6 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { sendEmail } from "../../../lib/email";
-import {
-  isRateLimited,
-  isTooFast,
-  recordRequest,
-  verifyCaptcha,
-} from "../../../lib/spam";
+import { consumeDistributedRateLimit, isTooFast, verifyCaptcha } from "../../../lib/spam";
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 
 export const runtime = "nodejs";
@@ -35,8 +30,19 @@ function escapeHtml(value: string): string {
 
 export async function POST(request: Request) {
   try {
-    // 1. Rate limiting
-    if (isRateLimited(request)) {
+    // 1. Distributed PostgreSQL rate limiting
+    let rateLimitAllowed: boolean;
+
+    try {
+      rateLimitAllowed = await consumeDistributedRateLimit(request, "quote");
+    } catch {
+      return NextResponse.json(
+        { error: "Submission service temporarily unavailable. Please try again later." },
+        { status: 503 }
+      );
+    }
+
+    if (!rateLimitAllowed) {
       return NextResponse.json(
         { error: "Too many submissions. Please wait and try again." },
         { status: 429 }
@@ -144,7 +150,6 @@ export async function POST(request: Request) {
     }
 
     // 8. Record valid submission attempt
-    recordRequest(request);
 
     // 9. Save quotation to Supabase
     const supabase = getSupabaseAdmin();

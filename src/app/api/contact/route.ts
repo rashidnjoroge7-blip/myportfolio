@@ -1,11 +1,25 @@
 import { NextResponse } from "next/server";
 import { sendEmail } from "../../../lib/email";
-import { isRateLimited, isTooFast, recordRequest, verifyCaptcha } from "../../../lib/spam";
+import { consumeDistributedRateLimit, isTooFast, verifyCaptcha } from "../../../lib/spam";
 
 export async function POST(request: Request) {
   try {
-    if (isRateLimited(request)) {
-      return NextResponse.json({ error: "Too many submissions. Please wait and try again." }, { status: 429 });
+    let rateLimitAllowed: boolean;
+
+    try {
+      rateLimitAllowed = await consumeDistributedRateLimit(request, "contact");
+    } catch {
+      return NextResponse.json(
+        { error: "Submission service temporarily unavailable. Please try again later." },
+        { status: 503 }
+      );
+    }
+
+    if (!rateLimitAllowed) {
+      return NextResponse.json(
+        { error: "Too many submissions. Please wait and try again." },
+        { status: 429 }
+      );
     }
 
     const data = await request.json();
@@ -38,8 +52,6 @@ export async function POST(request: Request) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: "Please provide a valid email address." }, { status: 400 });
     }
-
-    recordRequest(request);
 
     await sendEmail({
       replyTo: email,

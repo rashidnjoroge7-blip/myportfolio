@@ -1,3 +1,6 @@
+import { createHmac } from "node:crypto";
+import { getSupabaseAdmin } from "./supabaseAdmin";
+
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 5;
 
@@ -55,4 +58,42 @@ export async function verifyCaptcha(token: string) {
 
   const data = await response.json();
   return data.success === true;
+}
+
+// Distributed PostgreSQL rate limiter.
+// IP addresses are HMAC-hashed before being stored.
+export async function consumeDistributedRateLimit(
+  request: Request,
+  endpoint: "contact" | "quote"
+): Promise<boolean> {
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!serviceRoleKey) {
+    throw new Error("Rate limiter unavailable: Supabase service key missing.");
+  }
+
+  const ip = getClientIp(request);
+
+  const identifierHash = createHmac("sha256", serviceRoleKey)
+    .update(ip)
+    .digest("hex");
+
+  const supabase = getSupabaseAdmin();
+
+  const { data, error } = await supabase.rpc(
+    "consume_api_rate_limit",
+    {
+      p_endpoint: endpoint,
+      p_identifier_hash: identifierHash,
+      p_limit: 5,
+      p_window_seconds: 60,
+    }
+  );
+
+  if (error) {
+    console.error("Distributed rate limiter error:", error.message);
+    throw new Error("Rate limiter unavailable.");
+  }
+
+  return data === true;
 }

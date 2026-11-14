@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { sendEmail } from "../../../lib/email";
-import { consumeDistributedRateLimit, isTooFast, verifyCaptcha } from "../../../lib/spam";
+import { consumeDistributedRateLimit, isTooFast, verifyTurnstile } from "../../../lib/spam";
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 
 export const runtime = "nodejs";
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
     const timeline = cleanText(body.timeline, 100);
     const features = cleanText(body.features, 5000);
     const botField = cleanText(body.botField, 500);
-    const captchaToken = cleanText(body.captchaToken, 5000);
+    const turnstileToken = cleanText(body.turnstileToken, 5000);
 
     // 4. Honeypot protection
     if (botField) {
@@ -92,28 +92,37 @@ export async function POST(request: Request) {
       );
     }
 
-    // 5. reCAPTCHA verification when configured
-    const captchaEnabled = Boolean(
-      process.env.RECAPTCHA_SECRET_KEY &&
-      process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
-    );
+    // 5. Cloudflare Turnstile verification
+    if (!process.env.TURNSTILE_SECRET_KEY) {
+      return NextResponse.json(
+        { error: "Security verification is temporarily unavailable." },
+        { status: 503 }
+      );
+    }
 
-    if (captchaEnabled) {
-      if (!captchaToken) {
-        return NextResponse.json(
-          { error: "Security verification is required." },
-          { status: 400 }
-        );
-      }
+    if (!turnstileToken) {
+      return NextResponse.json(
+        { error: "Security verification is required." },
+        { status: 400 }
+      );
+    }
 
-      const verified = await verifyCaptcha(captchaToken);
+    let verified: boolean;
 
-      if (!verified) {
-        return NextResponse.json(
-          { error: "Security verification failed." },
-          { status: 400 }
-        );
-      }
+    try {
+      verified = await verifyTurnstile(turnstileToken, "quote_form", request);
+    } catch {
+      return NextResponse.json(
+        { error: "Security verification is temporarily unavailable. Please try again." },
+        { status: 503 }
+      );
+    }
+
+    if (!verified) {
+      return NextResponse.json(
+        { error: "Security verification failed. Please try again." },
+        { status: 400 }
+      );
     }
 
     // 6. Submission timing protection
@@ -287,3 +296,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

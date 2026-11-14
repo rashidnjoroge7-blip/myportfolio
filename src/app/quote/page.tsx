@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent, FocusEvent } from "react";
-import { useRecaptcha } from "../../lib/useRecaptcha";
+import TurnstileWidget from "../../components/TurnstileWidget";
 
 type FormData = {
   name: string;
@@ -82,6 +82,9 @@ export default function RequestQuote() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [botField, setBotField] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileError, setTurnstileError] = useState(false);
+  const [turnstileResetSignal, setTurnstileResetSignal] = useState(0);
 
   const formStartRef = useRef<number>(0);
 
@@ -90,14 +93,7 @@ export default function RequestQuote() {
     formStartRef.current = Date.now();
   }, []);
 
-  const {
-    enabled: captchaEnabled,
-    ready: captchaReady,
-    loadError: captchaLoadError,
-    getToken,
-  } = useRecaptcha();
-
-  // Automatically populate the selected portfolio project.
+// Automatically populate the selected portfolio project.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const project = params.get("project");
@@ -219,29 +215,13 @@ export default function RequestQuote() {
     setSubmitError("");
     setSubmitting(true);
 
-    let captchaToken = "";
-
-    // Verify reCAPTCHA when enabled.
-    if (captchaEnabled) {
-      if (!captchaReady) {
-        setSubmitError(
-          "Security verification is loading. Please wait and try again.",
-        );
-        setSubmitting(false);
-        return;
-      }
-
-      try {
-        captchaToken = await getToken("quote_form");
-      } catch {
-        setSubmitError(
-          "Unable to verify reCAPTCHA. Please refresh and try again.",
-        );
-        setSubmitting(false);
-        return;
-      }
+    if (!turnstileToken) {
+      setSubmitError(
+        "Please complete the security verification before submitting.",
+      );
+      setSubmitting(false);
+      return;
     }
-
     try {
       const response = await fetch("/api/quote", {
         method: "POST",
@@ -252,7 +232,7 @@ export default function RequestQuote() {
           ...formData,
           botField,
           formStart: formStartRef.current,
-          captchaToken,
+          turnstileToken,
         }),
       });
 
@@ -269,6 +249,9 @@ export default function RequestQuote() {
         behavior: "smooth",
       });
     } catch (error) {
+      setTurnstileToken("");
+      setTurnstileResetSignal((value) => value + 1);
+
       setSubmitError(
         error instanceof Error
           ? error.message
@@ -340,12 +323,28 @@ export default function RequestQuote() {
                 className="hidden"
               />
 
-              {/* reCAPTCHA error */}
-              {captchaEnabled && captchaLoadError && (
-                <div className="rounded-xl border border-yellow-500 bg-yellow-500/10 p-4 text-sm text-yellow-200">
-                  Unable to initialize reCAPTCHA. Please refresh the page.
-                </div>
-              )}
+              <div className="space-y-2">
+                <TurnstileWidget
+                  action="quote_form"
+                  resetSignal={turnstileResetSignal}
+                  onToken={(token) => {
+                    setTurnstileToken(token);
+                    setTurnstileError(false);
+                    setSubmitError("");
+                  }}
+                  onError={() => {
+                    setTurnstileToken("");
+                    setTurnstileError(true);
+                  }}
+                />
+
+                {turnstileError && (
+                  <p role="alert" className="text-sm text-yellow-300">
+                    Security verification could not initialize.
+                    Please refresh the page and try again.
+                  </p>
+                )}
+              </div>
 
               {/* Submission error */}
               {submitError && (
@@ -660,7 +659,7 @@ export default function RequestQuote() {
                 <button
                   type="submit"
                   disabled={
-                    submitting || (captchaEnabled && !!captchaLoadError)
+                    submitting || turnstileError || !turnstileToken
                   }
                   className={`btn-primary flex-1 ${
                     submitting ? "cursor-not-allowed opacity-70" : ""
@@ -726,4 +725,5 @@ export default function RequestQuote() {
     </div>
   );
 }
+
 

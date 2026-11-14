@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, FocusEvent, FormEvent } from "react";
 
 import { siteConfig } from "../../lib/siteConfig";
-import { useRecaptcha } from "../../lib/useRecaptcha";
+import TurnstileWidget from "../../components/TurnstileWidget";
 
 type FormErrors = {
   name?: string;
@@ -37,6 +37,9 @@ export default function Contact() {
   const [submitError, setSubmitError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [botField, setBotField] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileError, setTurnstileError] = useState(false);
+  const [turnstileResetSignal, setTurnstileResetSignal] = useState(0);
 
   const formStartRef = useRef<number>(0);
 
@@ -45,12 +48,6 @@ export default function Contact() {
     formStartRef.current = Date.now();
   }, []);
 
-  const {
-    enabled: captchaEnabled,
-    ready: captchaReady,
-    loadError: captchaLoadError,
-    getToken,
-  } = useRecaptcha();
 
   // Validate individual fields.
   const validateField = (name: string, value: string): string => {
@@ -161,31 +158,13 @@ export default function Contact() {
 
     setSubmitting(true);
 
-    let captchaToken = "";
-
-    // reCAPTCHA verification.
-    if (captchaEnabled) {
-      if (!captchaReady) {
-        setSubmitError(
-          "reCAPTCHA is still loading. Please wait a moment and try again.",
-        );
-
-        setSubmitting(false);
-        return;
-      }
-
-      try {
-        captchaToken = await getToken("contact_form");
-      } catch {
-        setSubmitError(
-          "Unable to verify reCAPTCHA. Please refresh the page and try again.",
-        );
-
-        setSubmitting(false);
-        return;
-      }
+    if (!turnstileToken) {
+      setSubmitError(
+        "Please complete the security verification before submitting.",
+      );
+      setSubmitting(false);
+      return;
     }
-
     try {
       const response = await fetch("/api/contact", {
         method: "POST",
@@ -196,7 +175,7 @@ export default function Contact() {
           ...formData,
           botField,
           formStart: formStartRef.current,
-          captchaToken,
+          turnstileToken,
         }),
       });
 
@@ -221,6 +200,8 @@ export default function Contact() {
         setSubmitted(false);
         setSuccessMessage("");
         formStartRef.current = Date.now();
+        setTurnstileToken("");
+        setTurnstileResetSignal((value) => value + 1);
       }, 4000);
     } catch (error) {
       setSubmitError(
@@ -258,7 +239,7 @@ export default function Contact() {
               <div className="space-y-8">
                 {/* Email */}
                 <div className="card stagger-1">
-                  <div className="mb-3 text-3xl">📧</div>
+                  <div className="mb-3 text-3xl">ðŸ“§</div>
 
                   <h3 className="mb-2 font-semibold text-[var(--color-forest-green-400)]">
                     Email
@@ -274,7 +255,7 @@ export default function Contact() {
 
                 {/* Phone */}
                 <div className="card stagger-2">
-                  <div className="mb-3 text-3xl">📞</div>
+                  <div className="mb-3 text-3xl">ðŸ“ž</div>
 
                   <h3 className="mb-2 font-semibold text-[var(--color-forest-green-400)]">
                     Phone
@@ -290,7 +271,7 @@ export default function Contact() {
 
                 {/* LinkedIn */}
                 <div className="card">
-                  <div className="mb-3 text-3xl">💼</div>
+                  <div className="mb-3 text-3xl">ðŸ’¼</div>
 
                   <h3 className="mb-2 font-semibold text-[var(--color-forest-green-400)]">
                     LinkedIn
@@ -308,7 +289,7 @@ export default function Contact() {
 
                 {/* GitHub */}
                 <div className="card">
-                  <div className="mb-3 text-3xl">🐙</div>
+                  <div className="mb-3 text-3xl">ðŸ™</div>
 
                   <h3 className="mb-2 font-semibold text-[var(--color-forest-green-400)]">
                     GitHub
@@ -326,7 +307,7 @@ export default function Contact() {
 
                 {/* Location */}
                 <div className="card stagger-4">
-                  <div className="mb-3 text-3xl">🌐</div>
+                  <div className="mb-3 text-3xl">ðŸŒ</div>
 
                   <h3 className="mb-2 font-semibold text-[var(--color-forest-green-400)]">
                     Location
@@ -345,7 +326,7 @@ export default function Contact() {
 
               {submitted ? (
                 <div className="card scale-fade-in border-2 border-[var(--color-forest-green-600)] bg-[var(--color-forest-green-900)]/20">
-                  <div className="mb-4 text-center text-5xl">✓</div>
+                  <div className="mb-4 text-center text-5xl">âœ“</div>
 
                   <p className="text-center font-semibold text-[var(--color-forest-green-400)]">
                     {successMessage}
@@ -365,13 +346,28 @@ export default function Contact() {
                     className="hidden"
                   />
 
-                  {/* reCAPTCHA Error */}
-                  {captchaEnabled && captchaLoadError && (
-                    <div className="rounded-xl border border-yellow-500 bg-yellow-500/10 p-4 text-sm text-yellow-200">
-                      Unable to initialize reCAPTCHA. Please refresh the page
-                      and try again.
-                    </div>
-                  )}
+                  <div className="space-y-2">
+                    <TurnstileWidget
+                      action="contact_form"
+                      resetSignal={turnstileResetSignal}
+                      onToken={(token) => {
+                        setTurnstileToken(token);
+                        setTurnstileError(false);
+                        setSubmitError("");
+                      }}
+                      onError={() => {
+                        setTurnstileToken("");
+                        setTurnstileError(true);
+                      }}
+                    />
+
+                    {turnstileError && (
+                      <p role="alert" className="text-sm text-yellow-300">
+                        Security verification could not initialize.
+                        Please refresh the page and try again.
+                      </p>
+                    )}
+                  </div>
 
                   {/* Submission Error */}
                   {submitError && (
@@ -519,7 +515,7 @@ export default function Contact() {
                   <button
                     type="submit"
                     disabled={
-                      submitting || (captchaEnabled && !!captchaLoadError)
+                      submitting || turnstileError || !turnstileToken
                     }
                     className={`btn-primary stagger-5 w-full transition-all hover:shadow-lg hover:shadow-[var(--accent)]/30 ${
                       submitting ? "cursor-not-allowed opacity-70" : ""
@@ -561,7 +557,7 @@ export default function Contact() {
               aria-label="X / Twitter"
               className="stagger-2 flex h-12 w-12 transform items-center justify-center rounded-full bg-[var(--color-dark-blue-600)] transition-colors duration-300 hover:scale-110 hover:bg-[var(--color-dark-blue-700)] hover:shadow-lg hover:shadow-[var(--accent)]/40"
             >
-              <span className="text-white">𝕏</span>
+              <span className="text-white">ð•</span>
             </a>
 
             {/* LinkedIn */}
@@ -583,7 +579,7 @@ export default function Contact() {
               aria-label="GitHub"
               className="stagger-4 flex h-12 w-12 transform items-center justify-center rounded-full bg-[var(--color-dark-blue-600)] transition-colors duration-300 hover:scale-110 hover:bg-[var(--color-dark-blue-700)] hover:shadow-lg hover:shadow-[var(--accent)]/40"
             >
-              <span className="text-white">⚙</span>
+              <span className="text-white">âš™</span>
             </a>
           </div>
         </div>
@@ -591,3 +587,5 @@ export default function Contact() {
     </div>
   );
 }
+
+

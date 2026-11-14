@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { sendEmail } from "../../../lib/email";
-import { consumeDistributedRateLimit, isTooFast, verifyCaptcha } from "../../../lib/spam";
+import { consumeDistributedRateLimit, isTooFast, verifyTurnstile } from "../../../lib/spam";
 
 export async function POST(request: Request) {
   try {
@@ -23,22 +23,42 @@ export async function POST(request: Request) {
     }
 
     const data = await request.json();
-    const { name, email, subject, message, botField, formStart, captchaToken } = data;
+    const { name, email, subject, message, botField, formStart, turnstileToken } = data;
 
     if (botField?.trim()) {
       return NextResponse.json({ error: "Spam detected." }, { status: 400 });
     }
 
-    const captchaEnabled = Boolean(process.env.RECAPTCHA_SECRET_KEY && process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY);
+    if (!process.env.TURNSTILE_SECRET_KEY) {
+      return NextResponse.json(
+        { error: "Security verification is temporarily unavailable." },
+        { status: 503 }
+      );
+    }
 
-    if (captchaEnabled) {
-      if (!captchaToken?.trim()) {
-        return NextResponse.json({ error: "reCAPTCHA verification is required." }, { status: 400 });
-      }
+    if (typeof turnstileToken !== "string" || !turnstileToken.trim()) {
+      return NextResponse.json(
+        { error: "Security verification is required." },
+        { status: 400 }
+      );
+    }
 
-      if (!(await verifyCaptcha(captchaToken))) {
-        return NextResponse.json({ error: "reCAPTCHA verification failed." }, { status: 400 });
-      }
+    let verified: boolean;
+
+    try {
+      verified = await verifyTurnstile(turnstileToken, "contact_form", request);
+    } catch {
+      return NextResponse.json(
+        { error: "Security verification is temporarily unavailable. Please try again." },
+        { status: 503 }
+      );
+    }
+
+    if (!verified) {
+      return NextResponse.json(
+        { error: "Security verification failed. Please try again." },
+        { status: 400 }
+      );
     }
 
     if (isTooFast(formStart)) {

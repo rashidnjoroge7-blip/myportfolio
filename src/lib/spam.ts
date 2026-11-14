@@ -1,4 +1,4 @@
-import { createHmac } from "node:crypto";
+﻿import { createHmac } from "node:crypto";
 import { getSupabaseAdmin } from "./supabaseAdmin";
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
@@ -38,26 +38,84 @@ export function isTooFast(startedAt: unknown) {
   return Date.now() - startedAtNumber < 3000;
 }
 
-export async function verifyCaptcha(token: string) {
-  const secret = process.env.RECAPTCHA_SECRET_KEY;
+type TurnstileVerificationResponse = {
+  success: boolean;
+  hostname?: string;
+  action?: string;
+};
+
+export async function verifyTurnstile(
+  token: string,
+  expectedAction: "contact_form" | "quote_form",
+  request: Request,
+): Promise<boolean> {
+  const secret = process.env.TURNSTILE_SECRET_KEY;
+
   if (!secret) {
-    console.warn("RECAPTCHA_SECRET_KEY is not configured; captcha verification disabled.");
-    return true;
+    throw new Error("Turnstile secret key is not configured.");
   }
 
-  const response = await fetch("https://www.google.com/recaptcha/api/siteverify", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({
-      secret,
-      response: token,
-    }),
+  if (!token) {
+    return false;
+  }
+
+  const body = new URLSearchParams({
+    secret,
+    response: token,
   });
 
-  const data = await response.json();
-  return data.success === true;
+  const ip = getClientIp(request);
+
+  if (ip !== "unknown") {
+    body.set("remoteip", ip);
+  }
+
+  let response: Response;
+
+  try {
+    response = await fetch(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body,
+        cache: "no-store",
+        signal: AbortSignal.timeout(10000),
+      },
+    );
+  } catch {
+    throw new Error("Turnstile verification service unavailable.");
+  }
+
+  if (!response.ok) {
+    throw new Error("Turnstile verification service unavailable.");
+  }
+
+  let result: TurnstileVerificationResponse;
+
+  try {
+    result = (await response.json()) as TurnstileVerificationResponse;
+  } catch {
+    throw new Error("Invalid Turnstile verification response.");
+  }
+
+  const allowedHosts =
+    process.env.NODE_ENV === "production"
+      ? ["unihost.co.ke", "www.unihost.co.ke"]
+      : [
+          "unihost.co.ke",
+          "www.unihost.co.ke",
+          "localhost",
+          "127.0.0.1",
+        ];
+
+  return (
+    result.success === true &&
+    allowedHosts.includes((result.hostname || "").toLowerCase()) &&
+    result.action === expectedAction
+  );
 }
 
 // Distributed PostgreSQL rate limiter.

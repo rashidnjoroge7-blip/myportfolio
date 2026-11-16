@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, FocusEvent, FormEvent } from "react";
@@ -239,7 +239,7 @@ export default function Contact() {
               <div className="space-y-8">
                 {/* Email */}
                 <div className="card stagger-1">
-                  <div className="mb-3 text-3xl">ðŸ“§</div>
+                  <div className="mb-3 text-[var(--color-forest-green-400)]"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></div>
 
                   <h3 className="mb-2 font-semibold text-[var(--color-forest-green-400)]">
                     Email
@@ -255,7 +255,7 @@ export default function Contact() {
 
                 {/* Phone */}
                 <div className="card stagger-2">
-                  <div className="mb-3 text-3xl">ðŸ“ž</div>
+                  <div className="mb-3 text-[var(--color-forest-green-400)]"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.96.35 1.9.69 2.8a2 2 0 0 1-.45 2.11L8.08 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.84.57 2.8.69A2 2 0 0 1 22 16.92z"/></svg></div>
 
                   <h3 className="mb-2 font-semibold text-[var(--color-forest-green-400)]">
                     Phone
@@ -268,28 +268,9 @@ export default function Contact() {
                     {siteConfig.phone}
                   </a>
                 </div>
-
-                {/* LinkedIn */}
-                <div className="card">
-                  <div className="mb-3 text-3xl">ðŸ’¼</div>
-
-                  <h3 className="mb-2 font-semibold text-[var(--color-forest-green-400)]">
-                    LinkedIn
-                  </h3>
-
-                  <a
-                    href={siteConfig.linkedin}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-slate-300 transition-colors hover:text-[var(--color-dark-blue-400)]"
-                  >
-                    {siteConfig.linkedin.replace("https://", "")}
-                  </a>
-                </div>
-
                 {/* GitHub */}
                 <div className="card">
-                  <div className="mb-3 text-3xl">ðŸ™</div>
+                  <div className="mb-3 text-[var(--color-forest-green-400)]"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .9a11.1 11.1 0 0 0-3.51 21.63c.55.1.76-.24.76-.53v-2.07c-3.1.67-3.76-1.32-3.76-1.32-.5-1.28-1.24-1.62-1.24-1.62-1.01-.69.08-.68.08-.68 1.12.08 1.71 1.15 1.71 1.15.99 1.7 2.6 1.21 3.23.92.1-.72.39-1.21.7-1.49-2.48-.28-5.08-1.24-5.08-5.52 0-1.22.44-2.22 1.15-3-.12-.28-.5-1.42.11-2.96 0 0 .94-.3 3.06 1.15a10.6 10.6 0 0 1 5.57 0c2.12-1.45 3.06-1.15 3.06-1.15.61 1.54.23 2.68.11 2.96.72.78 1.15 1.78 1.15 3 0 4.29-2.6 5.23-5.09 5.51.4.35.76 1.03.76 2.08V22c0 .29.2.64.77.53A11.1 11.1 0 0 0 12 .9z"/></svg></div>
 
                   <h3 className="mb-2 font-semibold text-[var(--color-forest-green-400)]">
                     GitHub
@@ -307,7 +288,7 @@ export default function Contact() {
 
                 {/* Location */}
                 <div className="card stagger-4">
-                  <div className="mb-3 text-3xl">ðŸŒ</div>
+                  <div className="mb-3 text-[var(--color-forest-green-400)]"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></div>
 
                   <h3 className="mb-2 font-semibold text-[var(--color-forest-green-400)]">
                     Location
@@ -538,38 +519,6 @@ export default function Contact() {
           </h2>
 
           <div className="flex flex-wrap justify-center gap-6">
-            {/* Facebook */}
-            <a
-              href={siteConfig.facebook}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Facebook"
-              className="stagger-1 flex h-12 w-12 transform items-center justify-center rounded-full bg-[var(--color-dark-blue-600)] transition-colors duration-300 hover:scale-110 hover:bg-[var(--color-dark-blue-700)] hover:shadow-lg hover:shadow-[var(--accent)]/40"
-            >
-              <span className="text-white">f</span>
-            </a>
-
-            {/* X / Twitter */}
-            <a
-              href={siteConfig.twitter}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="X / Twitter"
-              className="stagger-2 flex h-12 w-12 transform items-center justify-center rounded-full bg-[var(--color-dark-blue-600)] transition-colors duration-300 hover:scale-110 hover:bg-[var(--color-dark-blue-700)] hover:shadow-lg hover:shadow-[var(--accent)]/40"
-            >
-              <span className="text-white">ð•</span>
-            </a>
-
-            {/* LinkedIn */}
-            <a
-              href={siteConfig.linkedin}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="LinkedIn"
-              className="stagger-3 flex h-12 w-12 transform items-center justify-center rounded-full bg-[var(--color-forest-green-600)] transition-colors duration-300 hover:scale-110 hover:bg-[var(--color-forest-green-700)] hover:shadow-lg hover:shadow-[var(--accent-2)]/40"
-            >
-              <span className="text-white">in</span>
-            </a>
 
             {/* GitHub */}
             <a
@@ -579,7 +528,7 @@ export default function Contact() {
               aria-label="GitHub"
               className="stagger-4 flex h-12 w-12 transform items-center justify-center rounded-full bg-[var(--color-dark-blue-600)] transition-colors duration-300 hover:scale-110 hover:bg-[var(--color-dark-blue-700)] hover:shadow-lg hover:shadow-[var(--accent)]/40"
             >
-              <span className="text-white">âš™</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24" fill="currentColor" className="text-white" aria-hidden="true"><path d="M12 .9a11.1 11.1 0 0 0-3.51 21.63c.55.1.76-.24.76-.53v-2.07c-3.1.67-3.76-1.32-3.76-1.32-.5-1.28-1.24-1.62-1.24-1.62-1.01-.69.08-.68.08-.68 1.12.08 1.71 1.15 1.71 1.15.99 1.7 2.6 1.21 3.23.92.1-.72.39-1.21.7-1.49-2.48-.28-5.08-1.24-5.08-5.52 0-1.22.44-2.22 1.15-3-.12-.28-.5-1.42.11-2.96 0 0 .94-.3 3.06 1.15a10.6 10.6 0 0 1 5.57 0c2.12-1.45 3.06-1.15 3.06-1.15.61 1.54.23 2.68.11 2.96.72.78 1.15 1.78 1.15 3 0 4.29-2.6 5.23-5.09 5.51.4.35.76 1.03.76 2.08V22c0 .29.2.64.77.53A11.1 11.1 0 0 0 12 .9z"/></svg>
             </a>
           </div>
         </div>
@@ -587,5 +536,3 @@ export default function Contact() {
     </div>
   );
 }
-
-

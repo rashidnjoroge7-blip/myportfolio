@@ -1,30 +1,64 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { sendEmail } from "../../../lib/email";
-import { isRateLimited, isTooFast, recordRequest, verifyCaptcha } from "../../../lib/spam";
+import { consumeDistributedRateLimit, isTooFast, verifyTurnstile } from "../../../lib/spam";
 
 export async function POST(request: Request) {
   try {
-    if (isRateLimited(request)) {
-      return NextResponse.json({ error: "Too many submissions. Please wait and try again." }, { status: 429 });
+    let rateLimitAllowed: boolean;
+
+    try {
+      rateLimitAllowed = await consumeDistributedRateLimit(request, "contact");
+    } catch {
+      return NextResponse.json(
+        { error: "Submission service temporarily unavailable. Please try again later." },
+        { status: 503 }
+      );
+    }
+
+    if (!rateLimitAllowed) {
+      return NextResponse.json(
+        { error: "Too many submissions. Please wait and try again." },
+        { status: 429 }
+      );
     }
 
     const data = await request.json();
-    const { name, email, subject, message, botField, formStart, captchaToken } = data;
+    const { name, email, subject, message, botField, formStart, turnstileToken } = data;
 
     if (botField?.trim()) {
       return NextResponse.json({ error: "Spam detected." }, { status: 400 });
     }
 
-    const captchaEnabled = Boolean(process.env.RECAPTCHA_SECRET_KEY && process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY);
+    if (!process.env.TURNSTILE_SECRET_KEY) {
+      return NextResponse.json(
+        { error: "Security verification is temporarily unavailable." },
+        { status: 503 }
+      );
+    }
 
-    if (captchaEnabled) {
-      if (!captchaToken?.trim()) {
-        return NextResponse.json({ error: "reCAPTCHA verification is required." }, { status: 400 });
-      }
+    if (typeof turnstileToken !== "string" || !turnstileToken.trim()) {
+      return NextResponse.json(
+        { error: "Security verification is required." },
+        { status: 400 }
+      );
+    }
 
-      if (!(await verifyCaptcha(captchaToken))) {
-        return NextResponse.json({ error: "reCAPTCHA verification failed." }, { status: 400 });
-      }
+    let verified: boolean;
+
+    try {
+      verified = await verifyTurnstile(turnstileToken, "contact_form", request);
+    } catch {
+      return NextResponse.json(
+        { error: "Security verification is temporarily unavailable. Please try again." },
+        { status: 503 }
+      );
+    }
+
+    if (!verified) {
+      return NextResponse.json(
+        { error: "Security verification failed. Please try again." },
+        { status: 400 }
+      );
     }
 
     if (isTooFast(formStart)) {
@@ -39,9 +73,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Please provide a valid email address." }, { status: 400 });
     }
 
-    recordRequest(request);
-
     await sendEmail({
+      replyTo: email,
       subject: `Portfolio Contact: ${subject}`,
       text: `Name: ${name}\nEmail: ${email}\nSubject: ${subject}\n\n${message}`,
       html: `<p><strong>Name:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Subject:</strong> ${subject}</p><p><strong>Message:</strong></p><p>${message.replace(/\n/g, "<br />")}</p>`,

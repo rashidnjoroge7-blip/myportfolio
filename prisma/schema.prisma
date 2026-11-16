@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model client_projects {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  quote_request_id String?         @db.Uuid
+  client_email     String
+  title            String
+  status           String?         @default("draft")
+  created_at       DateTime?       @default(now()) @db.Timestamptz(6)
+  quote_requests   quote_requests? @relation(fields: [quote_request_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  milestones       milestones[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model milestones {
+  id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  client_project_id String?          @db.Uuid
+  title             String
+  description       String?
+  status            String?          @default("pending")
+  due_date          DateTime?        @db.Date
+  created_at        DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime?        @default(now()) @db.Timestamptz(6)
+  client_projects   client_projects? @relation(fields: [client_project_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model projects {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title       String
+  slug        String   @unique
+  description String
+  content     String   @default("")
+  tags        String[] @default([])
+  category    String   @default("Web Development")
+  image_url   String   @default("")
+  live_url    String   @default("")
+  repo_url    String   @default("")
+  featured    Boolean  @default(false)
+  status      String   @default("draft")
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([status, featured(sort: Desc), created_at(sort: Desc)], map: "projects_status_featured_idx")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model quote_requests {
+  id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                String            @db.VarChar(120)
+  email               String            @db.VarChar(254)
+  company             String?           @db.VarChar(150)
+  phone               String?           @db.VarChar(40)
+  project_name        String?           @db.VarChar(150)
+  project_type        String            @db.VarChar(100)
+  project_description String
+  features            String?
+  budget_range        String            @db.VarChar(100)
+  timeline            String            @db.VarChar(100)
+  status              String            @default("pending") @db.VarChar(20)
+  created_at          DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime          @default(now()) @db.Timestamptz(6)
+  quote_amount        Decimal?          @db.Decimal(12, 2)
+  quote_currency      String?           @default("KES") @db.VarChar(10)
+  quote_valid_until   DateTime?         @db.Date
+  quote_notes         String?
+  quote_sent_at       DateTime?         @db.Timestamptz(6)
+  quote_token         String            @unique(map: "quote_requests_quote_token_unique") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  client_response     String?
+  client_response_at  DateTime?         @db.Timestamptz(6)
+  revision_notes      String?
+  client_projects     client_projects[]
+
+  @@index([created_at(sort: Desc)])
+  @@index([email])
+  @@index([status])
+}

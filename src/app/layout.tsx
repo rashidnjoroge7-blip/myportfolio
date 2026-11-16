@@ -39,7 +39,7 @@ export default function RootLayout({
 
         <footer className="border-t border-[var(--card-border)] bg-[var(--surface)] mt-20">
           <div className="max-w-7xl mx-auto px-6 py-12 text-center text-[var(--muted)]">
-            <p>&copy; 2026 {siteConfig.company}. All rights reserved.</p>
+            <p>&copy; 2026 @Unihost Technologies. All rights reserved.</p>
           </div>
         </footer>
       </body>

@@ -116,13 +116,13 @@ export default function ThemeNavbar() {
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
           {/* Logo */}
           <Link href="/" className="group flex items-center gap-2">
-            <div className="relative h-10 w-10 overflow-hidden rounded-lg bg-[var(--surface-alt)] shadow-sm transition-transform group-hover:scale-105">
+            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-[var(--surface-alt)] shadow-sm transition-transform group-hover:scale-105">
               <Image
                 src="/logo.png"
                 alt="UniHost Technologies Logo"
                 fill
-                sizes="(max-width: 768px) 120px, 160px"
-                className="object-cover p-1"
+                sizes="56px"
+                className="object-contain p-1"
                 priority
               />
             </div>

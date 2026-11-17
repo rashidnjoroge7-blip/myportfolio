@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, FocusEvent, FormEvent } from "react";
@@ -268,6 +268,35 @@ export default function Contact() {
                     {siteConfig.phone}
                   </a>
                 </div>
+                {/* WhatsApp */}
+                <a
+                  href={`https://wa.me/${siteConfig.phone.replace(/\D/g, "")}?text=${encodeURIComponent("Hello UniHost Technologies, I would like to make an enquiry.")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="card stagger-3 block"
+                  aria-label="Chat with UniHost Technologies on WhatsApp"
+                >
+                  <div className="mb-3 text-[var(--color-forest-green-400)]">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="30"
+                      height="30"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path d="M20.52 3.48A11.86 11.86 0 0 0 12.08 0C5.5 0 .15 5.35.15 11.93c0 2.1.55 4.16 1.6 5.98L.05 24l6.23-1.63a11.9 11.9 0 0 0 5.8 1.5h.01c6.58 0 11.93-5.35 11.93-11.93 0-3.19-1.24-6.19-3.5-8.46ZM12.09 21.85a9.9 9.9 0 0 1-5.05-1.39l-.36-.21-3.7.97.99-3.6-.24-.37a9.88 9.88 0 0 1-1.52-5.32c0-5.45 4.44-9.89 9.9-9.89a9.82 9.82 0 0 1 7 2.9 9.82 9.82 0 0 1 2.9 7c0 5.46-4.45 9.9-9.91 9.9Zm5.43-7.41c-.3-.15-1.77-.87-2.04-.97-.28-.1-.48-.15-.68.15-.2.3-.78.97-.95 1.17-.18.2-.35.23-.65.08-.3-.15-1.26-.47-2.4-1.49-.89-.79-1.49-1.77-1.67-2.07-.17-.3-.02-.46.13-.61.14-.13.3-.35.45-.52.15-.18.2-.3.3-.5.1-.2.05-.37-.03-.52-.08-.15-.68-1.63-.93-2.23-.24-.58-.49-.5-.68-.51h-.58c-.2 0-.52.07-.8.37-.28.3-1.05 1.02-1.05 2.5s1.08 2.9 1.23 3.1c.15.2 2.12 3.23 5.14 4.53.72.31 1.28.5 1.72.64.72.23 1.37.2 1.88.12.57-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.18-1.42-.08-.13-.28-.2-.58-.35Z"/>
+                    </svg>
+                  </div>
+
+                  <h3 className="mb-2 font-semibold text-[var(--color-forest-green-400)]">
+                    WhatsApp
+                  </h3>
+
+                  <p className="text-slate-300 transition-colors hover:text-[var(--color-dark-blue-400)]">
+                    Chat with us directly
+                  </p>
+                </a>
                 {/* GitHub */}
                 <div className="card">
                   <div className="mb-3 text-[var(--color-forest-green-400)]"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .9a11.1 11.1 0 0 0-3.51 21.63c.55.1.76-.24.76-.53v-2.07c-3.1.67-3.76-1.32-3.76-1.32-.5-1.28-1.24-1.62-1.24-1.62-1.01-.69.08-.68.08-.68 1.12.08 1.71 1.15 1.71 1.15.99 1.7 2.6 1.21 3.23.92.1-.72.39-1.21.7-1.49-2.48-.28-5.08-1.24-5.08-5.52 0-1.22.44-2.22 1.15-3-.12-.28-.5-1.42.11-2.96 0 0 .94-.3 3.06 1.15a10.6 10.6 0 0 1 5.57 0c2.12-1.45 3.06-1.15 3.06-1.15.61 1.54.23 2.68.11 2.96.72.78 1.15 1.78 1.15 3 0 4.29-2.6 5.23-5.09 5.51.4.35.76 1.03.76 2.08V22c0 .29.2.64.77.53A11.1 11.1 0 0 0 12 .9z"/></svg></div>
@@ -307,7 +336,7 @@ export default function Contact() {
 
               {submitted ? (
                 <div className="card scale-fade-in border-2 border-[var(--color-forest-green-600)] bg-[var(--color-forest-green-900)]/20">
-                  <div className="mb-4 text-center text-5xl">âœ“</div>
+                  <div className="mb-4 text-center text-5xl">&#10003;</div>
 
                   <p className="text-center font-semibold text-[var(--color-forest-green-400)]">
                     {successMessage}
@@ -536,3 +565,6 @@ export default function Contact() {
     </div>
   );
 }
+
+
+

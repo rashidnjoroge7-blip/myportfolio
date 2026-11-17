@@ -1,3 +1,4 @@
+﻿import WhatsAppFloat from "../components/WhatsAppFloat";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import ThemeNavbar from "../components/ThemeNavbar";
@@ -42,6 +43,7 @@ export default function RootLayout({
             <p>&copy; 2026 @Unihost Technologies. All rights reserved.</p>
           </div>
         </footer>
+              <WhatsAppFloat />
       </body>
     </html>
   );

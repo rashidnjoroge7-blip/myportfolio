@@ -160,7 +160,7 @@ export default function ProjectsClient({ projects, github }: Props) {
             Interested in seeing more?
           </h2>
 
-          <p className="mb-8 text-[var(--muted)]">
+          <p className="mb-8 text-[var(--brand-muted)]">
             Check out my GitHub or contact me to discuss custom projects.
           </p>
 

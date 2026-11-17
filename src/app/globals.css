@@ -13,10 +13,10 @@
   --brand-muted: #cbd5e1;
   --muted: var(--brand-muted);
   --card-border: #1f2937;
-  --brand-accent: #6024F9;
+  --brand-accent: #6024f9;
   --accent: var(--brand-accent);
-  --accent-2: #F9CB24;
-  --accent-3: #52F924;
+  --accent-2: #f9cb24;
+  --accent-3: #52f924;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
@@ -59,12 +59,11 @@ html.light {
   --brand-muted: #475569;
   --muted: var(--brand-muted);
   --card-border: #e2e8f0;
-  --brand-accent: #6024F9;
+  --brand-accent: #6024f9;
   --accent: var(--brand-accent);
-  --accent-2: #F9CB24;
-  --accent-3: #52F924;
+  --accent-2: #f9cb24;
+  --accent-3: #52f924;
 }
-
 
 html.light {
   color-scheme: light;
@@ -74,17 +73,17 @@ html.light {
   --card-foreground: #0f172a;
   --popover: #ffffff;
   --popover-foreground: #0f172a;
-  --primary: #6024F9;
+  --primary: #6024f9;
   --primary-foreground: #ffffff;
-  --secondary: #F9CB24;
+  --secondary: #f9cb24;
   --secondary-foreground: #0f172a;
   --muted: #f1f5f9;
   --muted-foreground: #475569;
-  --accent: #6024F9;
+  --accent: #6024f9;
   --accent-foreground: #ffffff;
   --border: #e2e8f0;
   --input: #e2e8f0;
-  --ring: #6024F9;
+  --ring: #6024f9;
 }
 @layer base {
   html {
@@ -92,7 +91,10 @@ html.light {
     @apply font-sans;
   }
 
-  h1, h2, h3, h4 {
+  h1,
+  h2,
+  h3,
+  h4 {
     color: var(--heading);
   }
 
@@ -100,8 +102,9 @@ html.light {
     background: var(--bg);
     color: var(--text);
     font-family: var(--font-sans);
-    transition: background-color 0.3s ease, color 0.3s ease;
-
+    transition:
+      background-color 0.3s ease,
+      color 0.3s ease;
   }
 
   ::selection {
@@ -149,7 +152,11 @@ html.light {
   }
 
   html.light .section-title {
-    background-image: linear-gradient(90deg, var(--brand-accent), var(--accent-2));
+    background-image: linear-gradient(
+      90deg,
+      var(--brand-accent),
+      var(--accent-2)
+    );
   }
 
   .section-subtitle {
@@ -222,7 +229,8 @@ html.light {
   }
 
   @keyframes pulse-glow {
-    0%, 100% {
+    0%,
+    100% {
       box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.4);
     }
     50% {
@@ -332,13 +340,13 @@ html.light {
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: #6024F9;
+  --primary: #6024f9;
   --primary-foreground: #ffffff;
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: #cbd5e1;
   --muted-foreground: #94a3b8;
-  --accent: #6024F9;
+  --accent: #6024f9;
   --accent-foreground: #ffffff;
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
@@ -359,15 +367,10 @@ html.light {
   --sidebar-ring: oklch(0.556 0 0);
 }
 
-
-
-
-
-
 /* Call To Action contrast */
 .cta-panel {
   background: #172554;
-  border-color: #6024F9;
+  border-color: #6024f9;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
 }
 
@@ -499,14 +502,28 @@ html.light .mobile-nav-link-accent {
   background: #4318b8;
 }
 
-
 /* Global keyboard accessibility */
-:where(a, button, input, select, textarea, [tabindex]:not([tabindex="-1"])):focus-visible {
+:where(
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  [tabindex]:not([tabindex="-1"])
+):focus-visible {
   outline: 3px solid var(--accent-2);
   outline-offset: 3px;
 }
 
-html.light :where(a, button, input, select, textarea, [tabindex]:not([tabindex="-1"])):focus-visible {
+html.light
+  :where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    [tabindex]:not([tabindex="-1"])
+  ):focus-visible {
   outline-color: var(--brand-accent);
 }
 
@@ -515,3 +532,327 @@ html.light :where(a, button, input, select, textarea, [tabindex]:not([tabindex="
   padding: 0;
 }
 
+/* =========================================================
+   LIGHT MODE - TYPOGRAPHY AND CONTRAST IMPROVEMENTS
+   Dark mode remains unchanged.
+   ========================================================= */
+
+html.light {
+  color-scheme: light;
+
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-alt: #f1f5f9;
+
+  --text: #1e293b;
+  --heading: #111827;
+
+  --brand-muted: #475569;
+  --muted: #f1f5f9;
+
+  --card-border: #cbd5e1;
+
+  --brand-accent: #6024f9;
+  --accent: #6024f9;
+
+  --accent-2: #f9cb24;
+  --accent-3: #166534;
+
+  --background: #f8fafc;
+  --foreground: #1e293b;
+  --card: #ffffff;
+  --card-foreground: #1e293b;
+  --popover: #ffffff;
+  --popover-foreground: #1e293b;
+
+  --primary: #6024f9;
+  --primary-foreground: #ffffff;
+
+  --secondary: #f9cb24;
+  --secondary-foreground: #111827;
+
+  --muted-foreground: #475569;
+  --accent-foreground: #ffffff;
+
+  --border: #cbd5e1;
+  --input: #cbd5e1;
+  --ring: #6024f9;
+}
+
+/* Global typography */
+html.light body {
+  color: #1e293b;
+  line-height: 1.7;
+}
+
+html.light h1,
+html.light h2,
+html.light h3,
+html.light h4,
+html.light h5,
+html.light h6 {
+  color: #111827;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+html.light p {
+  color: #334155;
+}
+
+html.light strong,
+html.light b {
+  color: #0f172a;
+  font-weight: 650;
+}
+
+/* Section headings */
+html.light .section-title {
+  background-image: linear-gradient(90deg, #4c1d95, #1e293b);
+}
+
+html.light .section-subtitle {
+  color: #475569;
+  font-weight: 500;
+  line-height: 1.7;
+}
+
+/* Labels and links */
+html.light .eyebrow-label,
+html.light .content-link {
+  color: #4c1d95;
+  font-weight: 650;
+}
+
+html.light .content-link:hover {
+  color: #312e81;
+}
+
+/* Buttons */
+html.light .btn-primary {
+  color: #ffffff;
+  background: #6024f9;
+}
+
+html.light .btn-primary:hover {
+  background: #4c1d95;
+}
+
+html.light .btn-secondary {
+  color: #111827;
+  background: #f9cb24;
+  font-weight: 650;
+}
+
+html.light .btn-secondary:hover {
+  color: #111827;
+  background: #eab308;
+}
+
+html.light .btn-outline {
+  color: #4c1d95;
+  border-color: #6024f9;
+  font-weight: 650;
+}
+
+html.light .btn-outline:hover {
+  color: #ffffff;
+  background: #6024f9;
+}
+
+/* Cards and surfaces */
+html.light .card {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+html.light .card:hover {
+  border-color: #6024f9;
+}
+
+/* Navigation */
+html.light .nav-link,
+html.light .mobile-nav-link {
+  color: #1e293b;
+  font-weight: 550;
+}
+
+html.light .nav-link:hover,
+html.light .mobile-nav-link:hover {
+  color: #6024f9;
+}
+
+html.light .nav-link-accent,
+html.light .mobile-nav-link-accent {
+  color: #4c1d95;
+  font-weight: 650;
+}
+
+/* Forms */
+html.light input,
+html.light textarea,
+html.light select {
+  color: #1e293b;
+  background-color: #ffffff;
+  border-color: #94a3b8;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #64748b;
+  opacity: 1;
+}
+
+html.light label {
+  color: #1e293b;
+  font-weight: 550;
+}
+
+/* Tables and secondary content */
+html.light th {
+  color: #1e293b;
+  font-weight: 650;
+}
+
+html.light td {
+  color: #334155;
+}
+
+html.light small {
+  color: #475569;
+}
+
+/* Focus visibility */
+html.light
+  :where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    [tabindex]:not([tabindex="-1"])
+  ):focus-visible {
+  outline: 3px solid #6024f9;
+  outline-offset: 3px;
+}
+
+/* Selection */
+html.light ::selection {
+  background: #ddd6fe;
+  color: #1e1b4b;
+}
+
+/* =========================================
+   GLOBAL INTERACTION ENHANCEMENTS
+========================================= */
+/* =========================================
+   UNIHОST GLOBAL INTERACTIONS
+========================================= */
+
+/* Cards */
+.card,
+.hover-card {
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease,
+    border-color 0.3s ease,
+    background-color 0.3s ease;
+}
+
+.card:hover,
+.hover-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--brand-accent);
+  box-shadow: 0 12px 30px rgba(96, 36, 249, 0.14);
+}
+
+/* Project cards */
+.project-card {
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.project-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 35px rgba(96, 36, 249, 0.18);
+}
+
+/* Buttons */
+.btn-primary,
+.btn-secondary,
+.btn-outline {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+  cursor: pointer;
+}
+
+.btn-primary:hover,
+.btn-secondary:hover,
+.btn-outline:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(96, 36, 249, 0.2);
+}
+
+.btn-primary:active,
+.btn-secondary:active,
+.btn-outline:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: none;
+}
+
+/* Contact links and interactive links */
+.content-link,
+.nav-link,
+.mobile-nav-link {
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+/* Form controls */
+input,
+textarea,
+select {
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--brand-accent);
+}
+
+/* Accessible keyboard focus */
+:where(
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  [tabindex]:not([tabindex="-1"])
+):focus-visible {
+  outline: 3px solid var(--accent-2);
+  outline-offset: 3px;
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

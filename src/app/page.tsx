@@ -122,7 +122,7 @@ export default async function Home() {
 
             <div className="grid gap-6 md:grid-cols-3">
               {featuredProjects.map((project) => (
-                <article key={project.id} className="card">
+                <article key={project.id} className="card project-card group">
                   {project.image_url ? (
                     <Image
                       src={project.image_url}
@@ -163,7 +163,7 @@ export default async function Home() {
       <section className="px-6 py-20">
         <div className="mx-auto max-w-5xl">
           <div className="grid gap-6 md:grid-cols-3">
-            <div className="card">
+            <div className="card hover-card">
               <div className="mb-4 text-4xl">&#128187;</div>
               <h3 className="mb-2 text-xl font-semibold">Web Development</h3>
               <p className="text-[var(--muted)]">
@@ -171,7 +171,7 @@ export default async function Home() {
               </p>
             </div>
 
-            <div className="card">
+            <div className="card hover-card">
               <div className="mb-4 text-4xl">&#127912;</div>
               <h3 className="mb-2 text-xl font-semibold">UI/UX Design</h3>
               <p className="text-[var(--muted)]">
@@ -179,7 +179,7 @@ export default async function Home() {
               </p>
             </div>
 
-            <div className="card">
+            <div className="card hover-card">
               <div className="mb-4 text-4xl">&#9889;</div>
               <h3 className="mb-2 text-xl font-semibold">Performance</h3>
               <p className="text-[var(--muted)]">
@@ -200,7 +200,7 @@ export default async function Home() {
               <Link
                 key={tech.slug}
                 href={`/tech/${tech.slug}`}
-                className="card block text-center"
+                className="card hover-card block text-center"
               >
                 <div className="mb-2 text-3xl">{tech.icon ?? "\u{1F527}"}</div>
 
@@ -236,4 +236,5 @@ export default async function Home() {
     </div>
   );
 }
+
 

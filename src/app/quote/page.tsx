@@ -667,7 +667,7 @@ export default function RequestQuote() {
                 >
                   {submitting
                     ? "Submitting Request..."
-                    : "Submit Quote Request â†’"}
+                    : "Submit Quote Request"}
                 </button>
 
                 <a href="/contact" className="btn-secondary flex-1 text-center">
@@ -725,5 +725,7 @@ export default function RequestQuote() {
     </div>
   );
 }
+
+
 
 

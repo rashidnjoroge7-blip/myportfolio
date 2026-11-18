@@ -1,7 +1,17 @@
 ﻿import { NextResponse } from "next/server";
 import { sendEmail } from "../../../lib/email";
-import { consumeDistributedRateLimit, isTooFast, verifyTurnstile } from "../../../lib/spam";
+import {
+  consumeDistributedRateLimit,
+  isTooFast,
+  verifyTurnstile,
+} from "../../../lib/spam";
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
+import {
+  calculateProjectEstimate,
+  validateEstimatorSelections,
+  type EstimatorSelections,
+  type ProjectCategory,
+} from "../../../lib/projectEstimator";
 
 export const runtime = "nodejs";
 
@@ -28,9 +38,51 @@ function escapeHtml(value: string): string {
   });
 }
 
+const categoryLabels: Record<ProjectCategory, string> = {
+  landing: "Landing Page",
+  business: "Business Website",
+  corporate: "Corporate Website",
+  ecommerce: "E-commerce Website",
+  webapp: "Custom Web Application",
+};
+
+const sizeLabels: Record<string, string> = {
+  small: "Small",
+  medium: "Medium",
+  large: "Large",
+  enterprise: "Enterprise",
+};
+
+const designLabels: Record<string, string> = {
+  standard: "Standard",
+  custom: "Custom",
+  premium: "Premium",
+};
+
+const featureLabels: Record<string, string> = {
+  booking: "Booking System",
+  payments: "Online Payments",
+  accounts: "User Accounts",
+  dashboard: "Admin Dashboard",
+  integrations: "Third-party Integrations",
+  cms: "Content Management System",
+  seo: "SEO Setup",
+};
+
+const serviceLabels: Record<string, string> = {
+  hosting: "Hosting",
+  maintenance: "Maintenance",
+};
+
+function formatKES(amount: number): string {
+  return `KES ${new Intl.NumberFormat("en-KE", {
+    maximumFractionDigits: 0,
+  }).format(amount)}`;
+}
+
 export async function POST(request: Request) {
   try {
-    // 1. Distributed PostgreSQL rate limiting
+    // 1. Distributed rate limiting
     let rateLimitAllowed: boolean;
 
     try {
@@ -70,21 +122,73 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Extract and sanitise fields
+    // 3. Extract and sanitise common fields
     const name = cleanText(body.name, 120);
     const email = cleanText(body.email, 254).toLowerCase();
     const company = cleanText(body.company, 150);
     const phone = cleanText(body.phone, 40);
     const projectName = cleanText(body.projectName, 150);
-    const projectType = cleanText(body.projectType, 100);
-    const projectDescription = cleanText(body.projectDescription, 10000);
-    const budgetRange = cleanText(body.budgetRange, 100);
+    const submittedProjectType = cleanText(body.projectType, 100);
+    const submittedDescription = cleanText(body.projectDescription, 10000);
+    const submittedBudget = cleanText(body.budgetRange, 100);
     const timeline = cleanText(body.timeline, 100);
-    const features = cleanText(body.features, 5000);
+    const submittedFeatures = cleanText(body.features, 5000);
     const botField = cleanText(body.botField, 500);
     const turnstileToken = cleanText(body.turnstileToken, 5000);
 
-    // 4. Honeypot protection
+    // 4. Determine whether this is an estimator submission
+    const isEstimator = body.submissionSource === "project_estimator";
+
+    let estimatorSelections: EstimatorSelections | null = null;
+    let estimate: ReturnType<typeof calculateProjectEstimate> | null = null;
+
+    let projectType = submittedProjectType;
+    let projectDescription = submittedDescription;
+    let budgetRange = submittedBudget;
+    let features = submittedFeatures;
+
+    if (isEstimator) {
+      if (!validateEstimatorSelections(body.estimator)) {
+        return NextResponse.json(
+          { error: "Invalid project estimator selections. Please review your project options." },
+          { status: 400 }
+        );
+      }
+
+      estimatorSelections = body.estimator;
+      estimate = calculateProjectEstimate(estimatorSelections);
+
+      // Derive the project type from the validated category.
+      projectType = categoryLabels[estimatorSelections.category];
+
+      const selectedFeatures = estimatorSelections.features.map(
+        (feature) => featureLabels[feature]
+      );
+
+      const selectedServices = estimatorSelections.services.map(
+        (service) => serviceLabels[service]
+      );
+
+      features = [
+        ...selectedFeatures,
+        ...selectedServices.map((service) => `${service} requested`),
+      ].join("\n");
+
+      if (!projectDescription) {
+        projectDescription = [
+          `Project estimate request for a ${projectType}.`,
+          `Project size: ${sizeLabels[estimatorSelections.size]}.`,
+          `Design level: ${designLabels[estimatorSelections.design]}.`,
+          `Selected features: ${selectedFeatures.join(", ") || "None specified"}.`,
+          `Additional services: ${selectedServices.join(", ") || "None specified"}.`,
+        ].join("\n");
+      }
+
+      // Never trust a price submitted by the browser.
+      budgetRange = `${formatKES(estimate.minimum)} - ${formatKES(estimate.maximum)}`;
+    }
+
+    // 5. Honeypot protection
     if (botField) {
       return NextResponse.json(
         { error: "Spam detected." },
@@ -92,7 +196,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 5. Cloudflare Turnstile verification
+    // 6. Cloudflare Turnstile verification
     if (!process.env.TURNSTILE_SECRET_KEY) {
       return NextResponse.json(
         { error: "Security verification is temporarily unavailable." },
@@ -125,7 +229,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 6. Submission timing protection
+    // 7. Submission timing protection
     if (isTooFast(body.formStart)) {
       return NextResponse.json(
         { error: "Form submitted too quickly. Please try again." },
@@ -133,7 +237,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 7. Required field validation
+    // 8. Required field validation
     if (
       !name ||
       !email ||
@@ -158,8 +262,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // 8. Record valid submission attempt
-
     // 9. Save quotation to Supabase
     const supabase = getSupabaseAdmin();
 
@@ -177,6 +279,11 @@ export async function POST(request: Request) {
         timeline,
         features: features || null,
         status: "pending",
+        estimate_min: estimate?.minimum ?? null,
+        estimate_max: estimate?.maximum ?? null,
+        estimate_currency: "KES",
+        estimator_details: estimatorSelections ?? {},
+        submission_source: isEstimator ? "project_estimator" : "quote_form",
       })
       .select("id")
       .single();
@@ -218,10 +325,17 @@ export async function POST(request: Request) {
         "<br />"
       );
 
+      const estimateText = estimate
+        ? `${formatKES(estimate.minimum)} - ${formatKES(estimate.maximum)}`
+        : "";
+
+      const safeEstimate = escapeHtml(estimateText);
+
       try {
         await sendEmail({
-          subject: `New Quote Request: ${projectType}`,
+          subject: `${isEstimator ? "New Project Estimate" : "New Quote Request"}: ${projectType}`,
           text: [
+            `Submission Type: ${isEstimator ? "Project Estimator" : "Standard Quote Form"}`,
             `Name: ${name}`,
             `Email: ${email}`,
             `Company: ${company || "N/A"}`,
@@ -229,12 +343,13 @@ export async function POST(request: Request) {
             `Project: ${projectName || projectType}`,
             `Project Type: ${projectType}`,
             `Budget: ${budgetRange}`,
+            ...(estimate ? [`Indicative Estimate: ${estimateText}`] : []),
             `Timeline: ${timeline}`,
             "",
             "Project Description:",
             projectDescription,
             "",
-            "Features:",
+            "Features and Services:",
             features || "N/A",
             "",
             `Reference: ${quote.id}`,
@@ -242,9 +357,10 @@ export async function POST(request: Request) {
           html: `
             <div style="font-family:Arial,sans-serif;max-width:650px;margin:auto;color:#1e293b;line-height:1.6">
               <div style="background:#0f172a;color:white;padding:24px">
-                <h2 style="margin:0">New Website Quotation Request</h2>
+                <h2 style="margin:0">${isEstimator ? "New Project Estimate Request" : "New Website Quotation Request"}</h2>
               </div>
               <div style="padding:24px;border:1px solid #e2e8f0">
+                <p><strong>Submission Type:</strong> ${isEstimator ? "Project Estimator" : "Standard Quote Form"}</p>
                 <p><strong>Client:</strong> ${safeName}</p>
                 <p><strong>Email:</strong> ${safeEmail}</p>
                 <p><strong>Company:</strong> ${safeCompany}</p>
@@ -252,11 +368,12 @@ export async function POST(request: Request) {
                 <p><strong>Project:</strong> ${safeProject}</p>
                 <p><strong>Project Type:</strong> ${safeType}</p>
                 <p><strong>Budget:</strong> ${safeBudget}</p>
+                ${estimate ? `<p><strong>Indicative Estimate:</strong> ${safeEstimate}</p>` : ""}
                 <p><strong>Timeline:</strong> ${safeTimeline}</p>
                 <hr />
                 <h3>Project Description</h3>
                 <p>${safeDescription}</p>
-                <h3>Requested Features</h3>
+                <h3>Requested Features and Services</h3>
                 <p>${safeFeatures}</p>
                 <hr />
                 <p><strong>Quotation Reference:</strong> ${quote.id}</p>
@@ -279,9 +396,20 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: true,
-        message: "Your quotation request was received successfully.",
+        message: isEstimator
+          ? "Your project estimate request was received successfully."
+          : "Your quotation request was received successfully.",
         quoteId: quote.id,
         emailSent,
+        ...(estimate
+          ? {
+              estimate: {
+                minimum: estimate.minimum,
+                maximum: estimate.maximum,
+                currency: estimate.currency,
+              },
+            }
+          : {}),
       },
       { status: 201 }
     );
@@ -296,4 +424,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

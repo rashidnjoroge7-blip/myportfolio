@@ -53,7 +53,65 @@ export default async function QuoteDetailPage({
         minimumFractionDigits: 2,
       }).format(Number(quote.quote_amount))
     : null;
+  const isEstimatorSubmission = quote.submission_source === "project_estimator";
 
+  const estimatorDetails = quote.estimator_details as {
+    category?: string;
+    size?: string;
+    design?: string;
+    features?: string[];
+    services?: string[];
+  } | null;
+
+  const estimateCurrency = quote.estimate_currency || "KES";
+
+  const formatEstimate = (amount: number) =>
+    new Intl.NumberFormat("en-KE", {
+      style: "currency",
+      currency: estimateCurrency,
+      maximumFractionDigits: 0,
+    }).format(amount);
+
+  const estimateRange =
+    quote.estimate_min != null && quote.estimate_max != null
+      ? `${formatEstimate(Number(quote.estimate_min))} – ${formatEstimate(Number(quote.estimate_max))}`
+      : "Estimate unavailable";
+
+  const categoryLabels: Record<string, string> = {
+    landing: "Landing Page",
+    business: "Business Website",
+    corporate: "Corporate Website",
+    ecommerce: "E-commerce Website",
+    webapp: "Custom Web Application",
+  };
+
+  const sizeLabels: Record<string, string> = {
+    small: "Small",
+    medium: "Medium",
+    large: "Large",
+    enterprise: "Enterprise",
+  };
+
+  const designLabels: Record<string, string> = {
+    standard: "Standard",
+    custom: "Custom",
+    premium: "Premium",
+  };
+
+  const featureLabels: Record<string, string> = {
+    booking: "Booking System",
+    payments: "Online Payments",
+    accounts: "User Accounts",
+    dashboard: "Admin Dashboard",
+    integrations: "Third-party Integrations",
+    cms: "Content Management System",
+    seo: "SEO Setup",
+  };
+
+  const serviceLabels: Record<string, string> = {
+    hosting: "Hosting",
+    maintenance: "Maintenance",
+  };
   return (
     <main className="min-h-screen bg-[var(--bg)] px-4 py-8 sm:px-6 sm:py-12">
       <div className="mx-auto max-w-5xl">
@@ -217,7 +275,110 @@ export default async function QuoteDetailPage({
                 </div>
               )}
             </section>
+            {/* Project Estimator Summary */}
+            {isEstimatorSubmission && (
+              <section className="rounded-2xl border border-[var(--accent)]/40 bg-[var(--surface)] p-6">
+                <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="text-lg font-semibold text-[var(--text)]">
+                    Project Estimate
+                  </h2>
 
+                  <span className="rounded-full bg-[var(--accent)]/10 px-3 py-1 text-xs font-semibold text-[var(--accent)]">
+                    Cost Estimator
+                  </span>
+                </div>
+
+                <div className="rounded-xl bg-[var(--accent)]/10 p-5">
+                  <p className="text-sm text-[var(--muted)]">
+                    Indicative Project Budget
+                  </p>
+
+                  <p className="mt-2 text-2xl font-bold text-[var(--accent)]">
+                    {estimateRange}
+                  </p>
+
+                  <p className="mt-2 text-xs text-[var(--muted)]">
+                    Preliminary estimate. Final pricing is subject to
+                    requirements review and formal quotation.
+                  </p>
+                </div>
+
+                <dl className="mt-6 grid gap-5 text-sm sm:grid-cols-2">
+                  <div>
+                    <dt className="text-[var(--muted)]">Project Category</dt>
+                    <dd className="mt-1 font-semibold text-[var(--text)]">
+                      {categoryLabels[estimatorDetails?.category || ""] ||
+                        estimatorDetails?.category ||
+                        "Not specified"}
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt className="text-[var(--muted)]">Project Size</dt>
+                    <dd className="mt-1 font-semibold text-[var(--text)]">
+                      {sizeLabels[estimatorDetails?.size || ""] ||
+                        estimatorDetails?.size ||
+                        "Not specified"}
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt className="text-[var(--muted)]">Design Level</dt>
+                    <dd className="mt-1 font-semibold text-[var(--text)]">
+                      {designLabels[estimatorDetails?.design || ""] ||
+                        estimatorDetails?.design ||
+                        "Not specified"}
+                    </dd>
+                  </div>
+                </dl>
+
+                <div className="mt-6 border-t border-[var(--card-border)] pt-5">
+                  <h3 className="mb-3 text-sm font-semibold text-[var(--text)]">
+                    Selected Features
+                  </h3>
+
+                  <div className="flex flex-wrap gap-2">
+                    {estimatorDetails?.features?.length ? (
+                      estimatorDetails.features.map((feature) => (
+                        <span
+                          key={feature}
+                          className="rounded-lg border border-[var(--card-border)] bg-[var(--bg)] px-3 py-2 text-xs text-[var(--text)]"
+                        >
+                          {featureLabels[feature] || feature}
+                        </span>
+                      ))
+                    ) : (
+                      <p className="text-sm text-[var(--muted)]">
+                        No additional features selected.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-5 border-t border-[var(--card-border)] pt-5">
+                  <h3 className="mb-3 text-sm font-semibold text-[var(--text)]">
+                    Additional Services
+                  </h3>
+
+                  <div className="flex flex-wrap gap-2">
+                    {estimatorDetails?.services?.length ? (
+                      estimatorDetails.services.map((service) => (
+                        <span
+                          key={service}
+                          className="rounded-lg border border-[var(--card-border)] bg-[var(--bg)] px-3 py-2 text-xs text-[var(--text)]"
+                        >
+                          {serviceLabels[service] || service}
+                        </span>
+                      ))
+                    ) : (
+                      <p className="text-sm text-[var(--muted)]">
+                        No additional services selected.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </section>
+            )}
             {/* Saved Quotation Summary */}
             {hasQuotationAmount && (
               <section className="rounded-2xl border border-emerald-500/30 bg-[var(--surface)] p-6">

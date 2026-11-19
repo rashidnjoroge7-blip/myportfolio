@@ -1,7 +1,7 @@
 import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { createHash, timingSafeEqual } from "crypto";
+import bcrypt from "bcryptjs";
 
 export function isAdminEmail(email?: string | null) {
   if (!email) return false;
@@ -14,36 +14,26 @@ export function isAdminEmail(email?: string | null) {
   return allowlist.includes(email.trim().toLowerCase());
 }
 
-function verifyPassword(password: string) {
-  const configuredPassword = process.env.ADMIN_PASSWORD;
+async function verifyPassword(password: string) {
+  const passwordHash = process.env.ADMIN_PASSWORD_HASH;
 
-  if (!configuredPassword || !password) return false;
+  if (!passwordHash || !password) return false;
 
-  const suppliedHash = createHash("sha256").update(password).digest();
-
-  const configuredHash = createHash("sha256")
-    .update(configuredPassword)
-    .digest();
-
-  return timingSafeEqual(suppliedHash, configuredHash);
+  try {
+    return await bcrypt.compare(password, passwordHash);
+  } catch {
+    return false;
+  }
 }
 
 export const authOptions: NextAuthOptions = {
   providers: [
-    // EMAIL + PASSWORD LOGIN
     CredentialsProvider({
       id: "credentials",
       name: "Email Login",
-
       credentials: {
-        email: {
-          label: "Email",
-          type: "email",
-        },
-        password: {
-          label: "Password",
-          type: "password",
-        },
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
       },
 
       async authorize(credentials) {
@@ -53,11 +43,9 @@ export const authOptions: NextAuthOptions = {
 
         const email = credentials.email.trim().toLowerCase();
 
-        if (!isAdminEmail(email)) {
-          return null;
-        }
+        if (!isAdminEmail(email)) return null;
 
-        if (!verifyPassword(credentials.password)) {
+        if (!(await verifyPassword(credentials.password))) {
           return null;
         }
 
@@ -69,7 +57,6 @@ export const authOptions: NextAuthOptions = {
       },
     }),
 
-    // GOOGLE LOGIN
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID ?? "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
@@ -82,7 +69,7 @@ export const authOptions: NextAuthOptions = {
 
   session: {
     strategy: "jwt",
-    maxAge: 8 * 60 * 60, // 8 hours
+    maxAge: 8 * 60 * 60,
   },
 
   secret: process.env.NEXTAUTH_SECRET,

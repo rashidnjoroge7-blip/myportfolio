@@ -1,9 +1,19 @@
 import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { getNairobiDateString } from "@/lib/nairobiDate";
 import { respondToQuote } from "./actions";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function formatDateOnly(date: string | null) {
+  if (!date) return "Not specified";
+
+  return new Intl.DateTimeFormat("en-KE", {
+    dateStyle: "long",
+    timeZone: "UTC",
+  }).format(new Date(`${date}T00:00:00.000Z`));
+}
 
 export default async function QuotePortal({
   params,
@@ -57,6 +67,13 @@ export default async function QuotePortal({
 
   const alreadyResponded = Boolean(quote.client_response);
 
+  const todayNairobi = getNairobiDateString();
+
+  const isExpired = Boolean(
+    quote.quote_valid_until &&
+    quote.quote_valid_until < todayNairobi
+  );
+
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-12 text-white">
       <div className="mx-auto max-w-3xl">
@@ -102,9 +119,7 @@ export default async function QuotePortal({
             <div>
               <p className="text-sm text-slate-400">Valid until</p>
               <p className="mt-1 font-medium">
-                {quote.quote_valid_until
-                  ? new Date(quote.quote_valid_until).toLocaleDateString("en-KE")
-                  : "Not specified"}
+                {formatDateOnly(quote.quote_valid_until)}
               </p>
             </div>
           </div>
@@ -131,9 +146,11 @@ export default async function QuotePortal({
             <div className="mt-6 rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
               {query.error === "notes-required"
                 ? "Please provide notes explaining your requested revision."
-                : query.error === "already-responded"
-                  ? "This quotation has already received a response."
-                  : "We could not process your response. Please try again."}
+                : query.error === "expired"
+                  ? "This quotation has expired. Please contact us for an updated proposal."
+                  : query.error === "already-responded"
+                    ? "This quotation has already received a response."
+                    : "We could not process your response. Please try again."}
             </div>
           )}
 
@@ -153,6 +170,17 @@ export default async function QuotePortal({
                   {quote.revision_notes}
                 </p>
               )}
+            </div>
+          ) : isExpired ? (
+            <div className="mt-8 rounded-xl border border-amber-500/40 bg-amber-500/10 p-5">
+              <h3 className="font-semibold text-amber-400">
+                Quotation expired
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                This quotation expired on {formatDateOnly(quote.quote_valid_until)}.
+                You can no longer accept it or request revisions using this link.
+                Please contact us for an updated proposal.
+              </p>
             </div>
           ) : (
             <form action={respondToQuote} className="mt-8 space-y-5">

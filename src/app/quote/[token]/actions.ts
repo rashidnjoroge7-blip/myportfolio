@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { getNairobiDateString } from "@/lib/nairobiDate";
 import { sendEmail } from "@/lib/email";
 
 const UUID_REGEX =
@@ -43,8 +44,41 @@ export async function respondToQuote(formData: FormData) {
   }
 
   const supabase = getSupabaseAdmin();
+  const todayNairobi = getNairobiDateString();
+
+  // Read the current quotation before accepting a response.
+  const { data: currentQuote, error: fetchError } = await supabase
+    .from("quote_requests")
+    .select("id,quote_valid_until,status,client_response")
+    .eq("quote_token", token)
+    .maybeSingle();
+
+  if (fetchError) {
+    console.error("Quote lookup error:", fetchError);
+    redirect(`/quote/${token}?error=save`);
+  }
+
+  if (!currentQuote) {
+    redirect(`/quote/${token}?error=already-responded`);
+  }
+
+  if (currentQuote.status !== "quoted" || currentQuote.client_response) {
+    redirect(`/quote/${token}?error=already-responded`);
+  }
+
+  // The expiry date is inclusive in the Africa/Nairobi timezone.
+  // A null expiry date means the quotation does not expire.
+  if (
+    currentQuote.quote_valid_until &&
+    currentQuote.quote_valid_until < todayNairobi
+  ) {
+    redirect(`/quote/${token}?error=expired`);
+  }
+
   const responseDate = new Date().toISOString();
 
+  // Apply the response only if the quotation is still eligible.
+  // The database filters protect against duplicate or concurrent submissions.
   const { data, error } = await supabase
     .from("quote_requests")
     .update({
@@ -56,6 +90,9 @@ export async function respondToQuote(formData: FormData) {
     .eq("quote_token", token)
     .eq("status", "quoted")
     .is("client_response", null)
+    .or(
+      `quote_valid_until.is.null,quote_valid_until.gte.${todayNairobi}`
+    )
     .select("id,name,email,project_name")
     .maybeSingle();
 
@@ -65,6 +102,20 @@ export async function respondToQuote(formData: FormData) {
   }
 
   if (!data) {
+    // Recheck expiry in case the quotation crossed its expiry boundary.
+    const { data: latestQuote } = await supabase
+      .from("quote_requests")
+      .select("quote_valid_until")
+      .eq("quote_token", token)
+      .maybeSingle();
+
+    if (
+      latestQuote?.quote_valid_until &&
+      latestQuote.quote_valid_until < getNairobiDateString()
+    ) {
+      redirect(`/quote/${token}?error=expired`);
+    }
+
     redirect(`/quote/${token}?error=already-responded`);
   }
 

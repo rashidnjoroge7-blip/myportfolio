@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/adminAuth";
+import { getNairobiDateString } from "@/lib/nairobiDate";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { sendEmail } from "@/lib/email";
 
@@ -172,7 +173,7 @@ export async function sendQuoteProposal(formData: FormData) {
   const notes = String(formData.get("quote_notes") ?? "").trim().slice(0, 5000);
 
   const validDate = new Date(`${validUntil}T00:00:00.000Z`);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getNairobiDateString();
 
   if (
     !id ||
@@ -197,6 +198,21 @@ export async function sendQuoteProposal(formData: FormData) {
   if (fetchError || !quote) {
     console.error("QUOTE PROPOSAL FETCH ERROR:", fetchError);
     redirect(`/admin/quotes/${encodeURIComponent(id)}?quoteError=not-found`);
+  }
+
+  const { data: existingProject, error: projectLookupError } = await supabase
+    .from("client_projects")
+    .select("id")
+    .eq("quote_request_id", id)
+    .maybeSingle();
+
+  if (projectLookupError) {
+    console.error("QUOTE PROJECT LOOKUP ERROR:", projectLookupError);
+    redirect(`/admin/quotes/${encodeURIComponent(id)}?quoteError=save`);
+  }
+
+  if (existingProject) {
+    redirect(`/admin/quotes/${encodeURIComponent(id)}?quoteError=project-exists`);
   }
 
   const projectName = String(
@@ -241,6 +257,11 @@ export async function sendQuoteProposal(formData: FormData) {
       quote_currency: "KES",
       quote_valid_until: validUntil,
       quote_notes: notes || null,
+      client_response: null,
+      client_response_at: null,
+      revision_notes: null,
+      status: "reviewing",
+      quote_sent_at: null,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id);

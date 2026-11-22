@@ -1,4 +1,4 @@
-﻿// src/app/admin/quotes/[id]/page.tsx
+// src/app/admin/quotes/[id]/page.tsx
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -6,7 +6,7 @@ import { requireAdmin } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { updateQuoteStatus } from "./actions";
 import { sendQuoteProposal } from "../actions";
-import { convertQuoteToProject } from "./convertToProject";
+import { convertQuoteToProject, resendClientAccessLink } from "./convertToProject";
 
 export default async function QuoteDetailPage({
   params,
@@ -19,13 +19,15 @@ export default async function QuoteDetailPage({
     quoteError?: string;
     updated?: string;
     email?: string;
+    conversion?: string;
+    accessLink?: string;
   }>;
 }) {
   await requireAdmin();
 
   const { id } = await params;
 
-  const { success, quoteSent, quoteError, updated, email } = await searchParams;
+  const { success, quoteSent, quoteError, updated, email, conversion, accessLink } = await searchParams;
 
   const supabase = getSupabaseAdmin();
 
@@ -38,6 +40,30 @@ export default async function QuoteDetailPage({
   if (error || !quote) {
     notFound();
   }
+
+  const {
+    data: existingProject,
+    error: existingProjectError,
+  } = await supabase
+    .from("client_projects")
+    .select("id, title, status, created_at")
+    .eq("quote_request_id", quote.id)
+    .maybeSingle();
+
+  if (existingProjectError) {
+    console.error("Unable to check existing client project:", existingProjectError);
+  }
+
+  const canConvertQuote =
+    quote.status === "quoted" &&
+    quote.client_response === "accepted" &&
+    !existingProject &&
+    !existingProjectError;
+
+  const canResendAccessLink =
+    quote.status === "completed" &&
+    quote.client_response === "accepted" &&
+    Boolean(existingProject);
 
   const hasQuotationAmount =
     quote.quote_amount !== null &&
@@ -187,7 +213,56 @@ export default async function QuoteDetailPage({
                 "Quotation was saved, but email delivery failed."}
               {quoteError === "save-status" &&
                 "Email was sent, but status could not be updated."}
+              {quoteError === "project-exists" &&
+                "This quotation is already linked to a client project. A revised proposal cannot reset its acceptance."}
             </span>
+          </div>
+        )}
+
+        {conversion === "success" && (
+          <div role="status" className="mb-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-4 text-sm font-medium text-emerald-700 dark:text-emerald-400">
+            Client project created successfully. A client access link has been sent.
+          </div>
+        )}
+
+        {conversion === "email-failed" && (
+          <div role="alert" className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-5 py-4 text-sm font-medium text-amber-700 dark:text-amber-400">
+            The project was created, but the client access email could not be sent. Use the resend access link option below.
+          </div>
+        )}
+
+        {conversion === "failed" && (
+          <div role="alert" className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm font-medium text-red-700 dark:text-red-400">
+            Project conversion failed. Check the project record and server logs before trying again.
+          </div>
+        )}
+
+        {conversion === "configuration-error" && (
+          <div role="alert" className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm font-medium text-red-700 dark:text-red-400">
+            Client access configuration is incomplete. Check the application URL configuration.
+          </div>
+        )}
+
+        {accessLink === "sent" && (
+          <div role="status" className="mb-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-4 text-sm font-medium text-emerald-700 dark:text-emerald-400">
+            A new client access link has been sent successfully.
+          </div>
+        )}
+
+        {accessLink === "failed" && (
+          <div role="alert" className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm font-medium text-red-700 dark:text-red-400">
+            Unable to send the client access link. Check the server logs.
+          </div>
+        )}
+
+        {accessLink === "configuration-error" && (
+          <div role="alert" className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm font-medium text-red-700 dark:text-red-400">
+            Client access configuration is incomplete. Check the application URL configuration.
+          </div>
+        )}
+        {accessLink === "not-eligible" && (
+          <div role="alert" className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-5 py-4 text-sm font-medium text-amber-700 dark:text-amber-400">
+            This quotation is not eligible for a client access-link resend. Verify that it has been accepted, converted, and linked to a client project.
           </div>
         )}
 
@@ -522,8 +597,83 @@ export default async function QuoteDetailPage({
               </p>
             </form>
 
+            {/* Client Acceptance and Project Tracking */}
+            <section className="space-y-4 rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] p-6">
+              <h2 className="text-lg font-semibold text-[var(--text)]">
+                Client Acceptance
+              </h2>
+
+              {quote.client_response === "accepted" ? (
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+                  <p className="font-semibold text-emerald-700 dark:text-emerald-400">
+                    ✓ Quotation accepted
+                  </p>
+                  <p className="mt-1 text-sm text-[var(--muted)]">
+                    The client accepted this quotation.
+                  </p>
+                  {quote.client_response_at && (
+                    <p className="mt-2 text-xs text-[var(--muted)]">
+                      Response recorded: {new Date(quote.client_response_at).toLocaleString("en-KE", { timeZone: "Africa/Nairobi" })}
+                    </p>
+                  )}
+                </div>
+              ) : quote.client_response === "revision_requested" ? (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+                  <p className="font-semibold text-amber-700 dark:text-amber-400">
+                    Revision requested
+                  </p>
+                  {quote.revision_notes && (
+                    <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--text)]">
+                      {quote.revision_notes}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-[var(--card-border)] bg-[var(--bg)] p-4">
+                  <p className="font-medium text-[var(--text)]">
+                    Awaiting client response
+                  </p>
+                  <p className="mt-1 text-sm text-[var(--muted)]">
+                    The client has not accepted or requested revisions.
+                  </p>
+                </div>
+              )}
+
+              {existingProjectError && (
+                <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+                  Existing project lookup failed. Conversion is disabled until the project record can be checked.
+                </p>
+              )}
+
+              {existingProject && (
+                <div className="rounded-xl border border-[var(--accent)]/40 bg-[var(--bg)] p-4">
+                  <h3 className="font-semibold text-[var(--text)]">
+                    Existing Client Project
+                  </h3>
+                  <p className="mt-2 text-sm text-[var(--text)]">
+                    {existingProject.title}
+                  </p>
+                  <p className="mt-1 text-xs capitalize text-[var(--muted)]">
+                    Project status: {existingProject.status || "Not specified"}
+                  </p>
+                  <p className="mt-1 break-all text-xs text-[var(--muted)]">
+                    Project ID: {existingProject.id}
+                  </p>
+                  <p className="mt-2 text-xs text-[var(--muted)]">
+                    This record is linked to this quotation. It will not be converted again.
+                  </p>
+                </div>
+              )}
+
+              {!existingProject && !existingProjectError && quote.status === "quoted" && quote.client_response !== "accepted" && (
+                <p className="text-sm text-[var(--muted)]">
+                  Project conversion becomes available after the client accepts the quotation.
+                </p>
+              )}
+            </section>
+
             {/* Convert to Client Project */}
-            {quote.status === "quoted" && (
+            {canConvertQuote && (
               <form
                 action={convertQuoteToProject}
                 className="space-y-4 rounded-2xl border border-[var(--accent)] bg-[var(--surface)] p-6"
@@ -531,7 +681,7 @@ export default async function QuoteDetailPage({
                 <input type="hidden" name="quoteId" value={quote.id} />
 
                 <h2 className="text-lg font-semibold text-[var(--text)]">
-                  Convert to Project
+                  Convert Accepted Quotation
                 </h2>
 
                 <div>
@@ -547,6 +697,7 @@ export default async function QuoteDetailPage({
                     name="projectTitle"
                     id="projectTitle"
                     required
+                    maxLength={200}
                     defaultValue={`${quote.name} - ${quote.project_type}`}
                     className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                   />
@@ -556,13 +707,38 @@ export default async function QuoteDetailPage({
                   type="submit"
                   className="w-full rounded-lg bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--accent-2)]"
                 >
-                  Convert to Client Project & Send Magic Link
+                  Create Client Project & Send Access Link
                 </button>
 
                 <p className="text-center text-xs leading-5 text-[var(--muted)]">
-                  Creates a client project and emails a secure access link to{" "}
+                  Creates one client project and emails a secure portal access link to{" "}
                   {quote.email}.
                 </p>
+              </form>
+            )}
+
+            {/* Resend Client Access */}
+            {canResendAccessLink && (
+              <form
+                action={resendClientAccessLink}
+                className="space-y-4 rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] p-6"
+              >
+                <input type="hidden" name="quoteId" value={quote.id} />
+
+                <h2 className="text-lg font-semibold text-[var(--text)]">
+                  Client Portal Access
+                </h2>
+
+                <p className="text-sm text-[var(--muted)]">
+                  The accepted quotation already has a completed client project. You can resend the secure access link to {quote.email}.
+                </p>
+
+                <button
+                  type="submit"
+                  className="w-full rounded-lg border border-[var(--accent)] px-4 py-3 text-sm font-semibold text-[var(--text)] transition-colors hover:bg-[var(--accent)] hover:text-white"
+                >
+                  Resend Client Access Link
+                </button>
               </form>
             )}
 
@@ -594,7 +770,7 @@ export default async function QuoteDetailPage({
                   <option value="pending">Pending</option>
                   <option value="reviewing">Reviewing</option>
                   <option value="quoted">Quoted</option>
-                  <option value="completed">Completed</option>
+                  {quote.status === "completed" && <option value="completed" disabled>Completed (managed by project conversion)</option>}
                   <option value="cancelled">Cancelled</option>
                 </select>
               </div>
@@ -611,7 +787,7 @@ export default async function QuoteDetailPage({
                   name="adminNotes"
                   id="adminNotes"
                   rows={4}
-                  defaultValue={quote.quote_notes || ""}
+                  defaultValue={quote.internal_notes || ""}
                   placeholder="Add internal notes..."
                   className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--bg)] px-3 py-3 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                 />

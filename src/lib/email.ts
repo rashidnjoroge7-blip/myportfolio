@@ -1,48 +1,46 @@
-import nodemailer from "nodemailer";
-import { siteConfig } from "./siteConfig";
+import { Resend } from "resend";
 
 type EmailOptions = {
+  to?: string;
+  replyTo?: string;
   subject: string;
   text: string;
   html: string;
 };
 
-const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, EMAIL_TO, EMAIL_FROM } = process.env;
+export async function sendEmail(options: EmailOptions) {
+  const apiKey = process.env.RESEND_API_KEY;
 
-const isSmtpConfigured = Boolean(SMTP_HOST && SMTP_PORT && SMTP_USER && SMTP_PASS);
-
-async function createTransport() {
-  if (!isSmtpConfigured) {
-    return null;
+  if (!apiKey) {
+    throw new Error("RESEND_API_KEY is not configured.");
   }
 
-  return nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: Number(SMTP_PORT),
-    secure: Number(SMTP_PORT) === 465,
-    auth: {
-      user: SMTP_USER,
-      pass: SMTP_PASS,
-    },
-  });
-}
+  const resend = new Resend(apiKey);
 
-export async function sendEmail(options: EmailOptions) {
-  const transport = await createTransport();
+  const from =
+    process.env.EMAIL_FROM ||
+    "Unihost Support <support@unihost.co.ke>";
 
-  const message = {
-    from: EMAIL_FROM || SMTP_USER || "no-reply@example.com",
-    to: EMAIL_TO || siteConfig.email || "hello@example.com",
+  const to =
+    options.to ||
+    process.env.EMAIL_TO ||
+    "support@unihost.co.ke";
+
+  const { data, error } = await resend.emails.send({
+    from,
+    to,
+    replyTo: options.replyTo,
     subject: options.subject,
     text: options.text,
     html: options.html,
-  };
+  });
 
-  if (!transport) {
-    console.warn("[email] SMTP is not configured. Falling back to console output.");
-    console.log(message);
-    return;
+  if (error) {
+    console.error("[email] Resend delivery failed:", error);
+    throw new Error(error.message);
   }
 
-  await transport.sendMail(message);
+  console.log("[email] Resend accepted message:", data?.id);
+
+  return data;
 }

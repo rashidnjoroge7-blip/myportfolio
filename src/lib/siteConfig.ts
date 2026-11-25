@@ -13,10 +13,7 @@ export const siteConfig = {
   email: "info@unihost.co.ke",
   phone: "+254764000664",
   location: "Nairobi, Kenya",
-  github: "https://github.com/yourprofile",
-  linkedin: "https://linkedin.com/in/yourprofile",
-  twitter: "https://twitter.com/yourprofile",
-  facebook: "https://facebook.com/yourprofile",
+  github: "https://github.com/kukumart",
   tagline: "Full-stack developer building modern web experiences",
   projects: [
     {

@@ -3,164 +3,297 @@ import { getTechBySlug, TECHS } from "../../../lib/techData";
 import { TechIcon } from "../../../components/TechIcon";
 
 type Props = {
-  params: { tech: string };
+  params: Promise<{ tech: string }>;
 };
 
 export function generateStaticParams() {
-  return TECHS.map((tech) => ({ tech: tech.slug }));
+  return TECHS.map((tech) => ({
+    tech: tech.slug,
+  }));
 }
 
-export default function TechPage({ params }: Props) {
-  const tech = getTechBySlug(params.tech);
+export default async function TechPage({ params }: Props) {
+  const { tech: slug } = await params;
+  const tech = getTechBySlug(slug);
 
   if (!tech) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center px-6">
         <div className="text-center">
           <h1 className="text-2xl font-bold">Technology not found</h1>
-          <p className="mt-4 text-[var(--muted)]">We don't have information for that tech yet.</p>
-          <Link href="/" className="mt-6 inline-block btn-outline">Back home</Link>
+
+          <p className="mt-4 text-[var(--muted)]">
+            We don&apos;t have information for that tech yet.
+          </p>
+
+          <Link href="/" className="btn-outline mt-6 inline-block">
+            Back home
+          </Link>
         </div>
       </div>
     );
   }
 
+  const relatedTech = TECHS.filter(
+    (item) => item.slug !== tech.slug && item.category === tech.category,
+  ).slice(0, 4);
+
+  const features = tech.features ?? [];
+  const useCases = tech.useCases ?? [];
+  const examples = tech.examples ?? [];
+  const bestFor = tech.bestFor ?? [];
+
   return (
-    <div className="max-w-6xl mx-auto px-6 py-20">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-10">
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight">{tech.name}</h1>
-          <p className="mt-3 text-lg text-[var(--muted)] max-w-3xl">{tech.summary ?? tech.usage}</p>
-        </div>
-        <Link href="/tech" className="btn-outline self-start md:self-center">
-          Back to Tech Index
-        </Link>
-      </div>
-
-      <section className="card mb-6 flex flex-col gap-6 p-8 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-[var(--surface-alt)] shadow-sm">
-            <TechIcon slug={tech.slug} className="h-12 w-12" />
-          </div>
-          <div>
-            <div className="inline-flex rounded-full bg-[var(--surface-alt)] px-3 py-1 text-sm font-medium uppercase tracking-[0.15em] text-[var(--accent)]">
-              {tech.category ?? "Technology"}
-            </div>
-            <p className="mt-4 text-[var(--muted)] max-w-2xl">{tech.usage}</p>
-          </div>
-        </div>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Link href="/quote" className="btn-primary inline-flex items-center justify-center px-6 py-3">
-            Start a project with {tech.name}
+    <main className="min-h-screen px-6 py-20">
+      <div className="mx-auto max-w-6xl">
+        {/* Breadcrumb */}
+        <div className="mb-10 text-sm text-[var(--muted)]">
+          <Link href="/" className="hover:text-[var(--accent)]">
+            Home
           </Link>
-          {tech.docs && (
-            <Link href={tech.docs} target="_blank" rel="noreferrer" className="btn-outline inline-flex items-center justify-center px-6 py-3">
-              Official docs
-            </Link>
-          )}
+
+          <span className="mx-2">/</span>
+
+          <Link href="/tech" className="hover:text-[var(--accent)]">
+            Tech Stack
+          </Link>
+
+          <span className="mx-2">/</span>
+
+          <span className="text-[var(--text)]">{tech.name}</span>
         </div>
-      </section>
 
-      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <main className="space-y-6">
-          {tech.why && (
-            <section className="card border-l-4 border-[var(--accent)] bg-[var(--surface)] p-6">
-              <h2 className="text-2xl font-semibold mb-3">Why this stack?</h2>
-              <p className="text-[var(--muted)]">{tech.why}</p>
+        {/* Hero Section */}
+        <section className="mb-16">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-[var(--card-border)] bg-[var(--surface)]">
+              <TechIcon slug={tech.slug} className="h-12 w-12" />
+            </div>
+
+            <div>
+              <span className="mb-3 inline-block rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-3 py-1 text-xs font-medium text-[var(--accent)]">
+                {tech.category}
+              </span>
+
+              <h1 className="text-4xl font-bold tracking-tight text-[var(--text)] md:text-5xl">
+                {tech.name}
+              </h1>
+
+              <p className="mt-4 max-w-3xl text-lg leading-relaxed text-[var(--muted)]">
+                {tech.summary ?? tech.usage}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Main Content */}
+        <div className="grid gap-8 lg:grid-cols-3">
+          {/* Left Content */}
+          <div className="space-y-8 lg:col-span-2">
+            {/* Overview */}
+            <section className="rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] p-6 md:p-8">
+              <h2 className="mb-4 text-2xl font-semibold text-[var(--text)]">
+                Overview
+              </h2>
+
+              <p className="leading-8 text-[var(--muted)]">
+                {tech.usage}
+              </p>
             </section>
-          )}
-          <section className="card">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-2xl font-semibold">Overview</h2>
-                <p className="mt-3 text-[var(--muted)]">{tech.usage}</p>
+
+            {/* Why I Use It */}
+            <section className="rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] p-6 md:p-8">
+              <h2 className="mb-4 text-2xl font-semibold text-[var(--text)]">
+                Why I Use {tech.name}
+              </h2>
+
+              <p className="leading-8 text-[var(--muted)]">
+                {tech.why}
+              </p>
+            </section>
+
+            {/* Features */}
+            {features.length > 0 && (
+              <section className="rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] p-6 md:p-8">
+                <h2 className="mb-6 text-2xl font-semibold text-[var(--text)]">
+                  Key Features
+                </h2>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {features.map((feature, index) => (
+                    <div
+                      key={`${feature}-${index}`}
+                      className="flex items-start gap-3 rounded-xl bg-[var(--surface-alt)] p-4"
+                    >
+                      <span className="mt-1 text-[var(--accent)]">✓</span>
+
+                      <p className="text-sm leading-relaxed text-[var(--text)]">
+                        {feature}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Use Cases */}
+            {useCases.length > 0 && (
+              <section className="rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] p-6 md:p-8">
+                <h2 className="mb-6 text-2xl font-semibold text-[var(--text)]">
+                  What I Use It For
+                </h2>
+
+                <div className="space-y-3">
+                  {useCases.map((useCase, index) => (
+                    <div
+                      key={`${useCase}-${index}`}
+                      className="flex items-start gap-3"
+                    >
+                      <span className="text-[var(--accent)]">→</span>
+
+                      <p className="text-[var(--muted)]">{useCase}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Examples */}
+            {examples.length > 0 && (
+              <section className="rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] p-6 md:p-8">
+                <h2 className="mb-6 text-2xl font-semibold text-[var(--text)]">
+                  Practical Applications
+                </h2>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {examples.map((example, index) => (
+                    <div
+                      key={`${example}-${index}`}
+                      className="rounded-xl border border-[var(--card-border)] p-4"
+                    >
+                      <p className="text-sm leading-relaxed text-[var(--muted)]">
+                        {example}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Best For */}
+            {bestFor.length > 0 && (
+              <section className="rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] p-6 md:p-8">
+                <h2 className="mb-6 text-2xl font-semibold text-[var(--text)]">
+                  Best Suited For
+                </h2>
+
+                <div className="flex flex-wrap gap-3">
+                  {bestFor.map((item, index) => (
+                    <span
+                      key={`${item}-${index}`}
+                      className="rounded-full border border-[var(--card-border)] bg-[var(--surface-alt)] px-4 py-2 text-sm text-[var(--text)]"
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+
+          {/* Sidebar */}
+          <aside className="space-y-6">
+            {/* Quick Facts */}
+            <section className="rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] p-6">
+              <h2 className="mb-6 text-xl font-semibold text-[var(--text)]">
+                Quick Facts
+              </h2>
+
+              <div className="space-y-5">
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-[var(--muted)]">
+                    Technology
+                  </p>
+
+                  <p className="mt-1 font-medium text-[var(--text)]">
+                    {tech.name}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-[var(--muted)]">
+                    Category
+                  </p>
+
+                  <p className="mt-1 font-medium text-[var(--text)]">
+                    {tech.category}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-[var(--muted)]">
+                    Slug
+                  </p>
+
+                  <p className="mt-1 font-medium text-[var(--text)]">
+                    {tech.slug}
+                  </p>
+                </div>
               </div>
-              {tech.category && (
-                <span className="inline-flex rounded-full bg-[var(--surface-alt)] px-4 py-2 text-sm font-medium uppercase tracking-[0.15em] text-[var(--accent)]">
-                  {tech.category}
-                </span>
-              )}
-            </div>
-          </section>
 
-          <section className="card">
-            <h2 className="text-2xl font-semibold mb-4">Key Features</h2>
-            <ul className="grid gap-3 sm:grid-cols-2 list-disc pl-6 text-[var(--muted)]">
-              {tech.features.map((feature) => (
-                <li key={feature}>{feature}</li>
-              ))}
-            </ul>
-          </section>
-
-          {tech.useCases && tech.useCases.length > 0 && (
-            <section className="card">
-              <h2 className="text-2xl font-semibold mb-4">Use Cases</h2>
-              <ul className="list-disc pl-6 text-[var(--muted)] space-y-2">
-                {tech.useCases.map((useCase) => (
-                  <li key={useCase}>{useCase}</li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {tech.examples && tech.examples.length > 0 && (
-            <section className="card">
-              <h2 className="text-2xl font-semibold mb-4">Examples</h2>
-              <ul className="list-disc pl-6 text-[var(--muted)] space-y-2">
-                {tech.examples.map((example) => (
-                  <li key={example}>{example}</li>
-                ))}
-              </ul>
-            </section>
-          )}
-        </main>
-
-        <aside className="space-y-6">
-          <section className="card">
-            <h2 className="text-xl font-semibold mb-3">Quick Facts</h2>
-            <div className="space-y-3 text-[var(--muted)]">
-              {tech.bestFor && tech.bestFor.length > 0 && (
-                <div>
-                  <p className="font-semibold text-[var(--text)] mb-2">Best for</p>
-                  <ul className="list-disc pl-6 space-y-1">
-                    {tech.bestFor.slice(0, 3).map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
               {tech.docs && (
-                <div>
-                  <p className="font-semibold text-[var(--text)] mb-2">Docs</p>
-                  <a
-                    href={tech.docs}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[var(--accent-2)] hover:underline"
-                  >
-                    Official {tech.name} documentation
-                  </a>
-                </div>
-              )}
-            </div>
-          </section>
-
-          <section className="card bg-[var(--surface-alt)] p-6">
-            <p className="text-sm uppercase tracking-[0.2em] text-[var(--accent)] mb-3">Explore more</p>
-            <div className="grid gap-3">
-              {TECHS.filter((t) => t.slug !== tech.slug).slice(0, 4).map((t) => (
-                <Link
-                  key={t.slug}
-                  href={`/tech/${t.slug}`}
-                  className="block rounded-xl border border-[var(--card-border)] bg-[var(--surface)] px-4 py-3 text-sm font-medium transition hover:border-[var(--accent)]"
+                <a
+                  href={tech.docs}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-8 block rounded-xl bg-[var(--accent)] px-5 py-3 text-center text-sm font-semibold text-white transition-opacity hover:opacity-90"
                 >
-                  {t.name}
-                </Link>
-              ))}
-            </div>
-          </section>
-        </aside>
+                  Official {tech.name} Documentation ↗
+                </a>
+              )}
+            </section>
+
+            {/* Related Technologies */}
+            {relatedTech.length > 0 && (
+              <section className="rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] p-6">
+                <h2 className="mb-5 text-xl font-semibold text-[var(--text)]">
+                  Explore More
+                </h2>
+
+                <div className="space-y-4">
+                  {relatedTech.map((item) => (
+                    <Link
+                      key={item.slug}
+                      href={`/tech/${item.slug}`}
+                      className="flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-[var(--surface-alt)]"
+                    >
+                      <TechIcon
+                        slug={item.slug}
+                        className="h-8 w-8 shrink-0"
+                      />
+
+                      <span className="font-medium text-[var(--text)]">
+                        {item.name}
+                      </span>
+
+                      <span className="ml-auto text-[var(--muted)]">→</span>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
+          </aside>
+        </div>
+
+        {/* Navigation */}
+        <div className="mt-16 border-t border-[var(--card-border)] pt-8">
+          <Link
+            href="/tech"
+            className="inline-flex items-center gap-2 text-sm font-medium text-[var(--accent)] hover:underline"
+          >
+            ← Back to Tech Stack
+          </Link>
+        </div>
       </div>
-    </div>
-  );
-}
+    </main>
+  );}

@@ -30,7 +30,9 @@ export default function ForgotPasswordPage() {
       if (error) {
         console.error("Password recovery request failed:", error.message);
         setMessage(
-          "Unable to request a recovery code right now. Please wait a moment and try again.",
+          error.status === 429 || error.code === "over_email_send_rate_limit"
+            ? "A recovery email was requested recently. Wait about 60 seconds before requesting another code."
+            : "Unable to request a recovery code right now. Please try again later.",
         );
         return;
       }

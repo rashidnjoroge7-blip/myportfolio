@@ -215,6 +215,21 @@ export async function sendQuoteProposal(formData: FormData) {
     redirect(`/admin/quotes/${encodeURIComponent(id)}?quoteError=project-exists`);
   }
 
+  // The database enforces the two-send cap and archives any revision response
+  // atomically, preventing concurrent admin requests from bypassing the limit.
+  const { data: sendNumber, error: reserveError } = await supabase.rpc(
+    "reserve_quote_proposal_send",
+    { p_quote_id: id },
+  );
+
+  if (reserveError || typeof sendNumber !== "number") {
+    console.error("QUOTE SEND RESERVATION ERROR:", reserveError);
+    const limitReached = reserveError?.message?.includes("send limit");
+    redirect(
+      `/admin/quotes/${encodeURIComponent(id)}?quoteError=${limitReached ? "send-limit" : "not-eligible"}`,
+    );
+  }
+
   const projectName = String(
     quote.project_name || quote.project_type || "Website Project"
   );
@@ -257,9 +272,6 @@ export async function sendQuoteProposal(formData: FormData) {
       quote_currency: "KES",
       quote_valid_until: validUntil,
       quote_notes: notes || null,
-      client_response: null,
-      client_response_at: null,
-      revision_notes: null,
       status: "reviewing",
       quote_sent_at: null,
       updated_at: new Date().toISOString(),

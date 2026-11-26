@@ -17,8 +17,14 @@ export default function ForgotPasswordPage() {
     setMessage("");
 
     try {
+      const redirectTo = new URL(
+        "/client/reset-password",
+        window.location.origin,
+      ).toString();
+
       const { error } = await supabase.auth.resetPasswordForEmail(
         email.trim().toLowerCase(),
+        { redirectTo },
       );
 
       if (error) {

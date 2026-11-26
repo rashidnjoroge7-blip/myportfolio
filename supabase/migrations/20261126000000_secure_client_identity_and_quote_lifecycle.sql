@@ -26,7 +26,7 @@ CREATE INDEX IF NOT EXISTS clients_email_lookup_idx
 ALTER TABLE public.client_projects
   ADD COLUMN IF NOT EXISTS client_id UUID NULL;
 
-DO $
+DO $$
 BEGIN
   -- Replace a legacy SET NULL relationship with RESTRICT so a client profile
   -- cannot be deleted while projects still depend on its identity.
@@ -50,7 +50,7 @@ BEGIN
       FOREIGN KEY (client_id) REFERENCES public.clients(id)
       ON DELETE RESTRICT;
   END IF;
-END $;
+END $$;
 
 -- Backfill legacy projects deterministically by normalized email.
 INSERT INTO public.clients (email)
@@ -80,7 +80,7 @@ UPDATE public.quote_requests
 SET quote_send_count = 1
 WHERE quote_sent_at IS NOT NULL AND quote_send_count = 0;
 
-DO $
+DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint

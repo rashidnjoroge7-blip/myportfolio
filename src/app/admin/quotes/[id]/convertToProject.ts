@@ -9,11 +9,14 @@ const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function getClientRedirectUrl(): string {
-  const baseUrl = process.env.NEXTAUTH_URL;
+  const deploymentHost =
+    process.env.VERCEL_ENV === "production"
+      ? process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL
+      : process.env.VERCEL_URL;
 
-  if (!baseUrl) {
-    throw new Error("NEXTAUTH_URL is not configured.");
-  }
+  const baseUrl = deploymentHost
+    ? `https://${deploymentHost.replace(/^https?:\/\//, "")}`
+    : process.env.NEXTAUTH_URL || "http://localhost:3000";
 
   const url = new URL(baseUrl);
 

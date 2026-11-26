@@ -1,6 +1,7 @@
 ﻿import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { linkAuthenticatedClient } from "@/lib/clientIdentity";
 
 type Milestone = {
   id: string;
@@ -124,6 +125,12 @@ export default async function ClientDashboardPage() {
     redirect("/client/login");
   }
 
+  const { client, error: identityError } = await linkAuthenticatedClient(user);
+  if (identityError || !client) {
+    await supabase.auth.signOut();
+    redirect("/client/login?error=account_not_provisioned");
+  }
+
   const { data, error } = await supabase
     .from("client_projects")
     .select(`
@@ -139,7 +146,7 @@ export default async function ClientDashboardPage() {
         due_date
       )
     `)
-    .eq("client_email", user.email)
+    .eq("client_id", client.id)
     .order("created_at", { ascending: false });
 
   const projects = (data ?? []) as unknown as ClientProject[];

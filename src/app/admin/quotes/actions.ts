@@ -246,15 +246,17 @@ export async function sendQuoteProposal(formData: FormData) {
     quote.project_name || quote.project_type || "Website Project"
   );
 
-  const productionHost =
-    process.env.VERCEL_PROJECT_PRODUCTION_URL ||
-    process.env.VERCEL_URL ||
-    "myportfolio-six-weld.vercel.app";
+  // Preview emails must point to the current preview deployment, never the
+  // production hostname. Local development uses NEXTAUTH_URL or localhost.
+  const deploymentHost =
+    process.env.VERCEL_ENV === "production"
+      ? process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL
+      : process.env.VERCEL_URL;
 
-  const siteUrl =
-    process.env.NODE_ENV === "production"
-      ? `https://${productionHost.replace(/^https?:\/\//, "")}`
-      : "http://localhost:3000";
+  const configuredBaseUrl = deploymentHost
+    ? `https://${deploymentHost.replace(/^https?:\/\//, "")}`
+    : process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const siteUrl = configuredBaseUrl.replace(/\/$/, "");
 
   const quoteUrl = `${siteUrl}/quote/${quoteToken}`;
 

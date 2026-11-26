@@ -98,6 +98,9 @@ model quote_requests {
   revision_notes      String?
   quote_send_count    Int               @default(0)
   quote_response_history Json           @default("[]")
+  proposal_send_token String?           @db.Uuid
+  proposal_send_reserved_at DateTime?   @db.Timestamptz(6)
+  proposal_send_email_sent_at DateTime? @db.Timestamptz(6)
   client_projects     client_projects[]
 
   @@index([created_at(sort: Desc)])

@@ -215,6 +215,10 @@ export default async function QuoteDetailPage({
                 "Email was sent, but status could not be updated."}
               {quoteError === "project-exists" &&
                 "This quotation is already linked to a client project. A revised proposal cannot reset its acceptance."}
+              {quoteError === "send-limit" &&
+                "The maximum of two quotation sends has been reached."}
+              {quoteError === "not-eligible" &&
+                "This quotation is no longer eligible for another proposal."}
             </span>
           </div>
         )}
@@ -526,6 +530,9 @@ export default async function QuoteDetailPage({
                 <p className="mt-1 text-xs text-[var(--muted)]">
                   Prepare a formal proposal and send it to the client.
                 </p>
+                <p className="mt-2 text-xs font-medium text-[var(--muted)]">
+                  Proposal sends: {quote.quote_send_count ?? 0} of 2
+                </p>
               </div>
 
               <div>
@@ -587,9 +594,10 @@ export default async function QuoteDetailPage({
 
               <button
                 type="submit"
-                className="w-full rounded-lg bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--accent-2)]"
+                disabled={(quote.quote_send_count ?? 0) >= 2 || Boolean(existingProject)}
+                className="w-full rounded-lg bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--accent-2)] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Prepare & Send Quotation
+                {(quote.quote_send_count ?? 0) >= 2 ? "Quotation Send Limit Reached" : "Prepare & Send Quotation"}
               </button>
 
               <p className="text-center text-xs leading-5 text-[var(--muted)]">

@@ -215,30 +215,36 @@ export async function sendQuoteProposal(formData: FormData) {
     redirect(`/admin/quotes/${encodeURIComponent(id)}?quoteError=project-exists`);
   }
 
-  // The database enforces the two-send cap and archives any revision response
-  // atomically, preventing concurrent admin requests from bypassing the limit.
-  const { data: sendNumber, error: reserveError } = await supabase.rpc(
-    "reserve_quote_proposal_send",
+  const quoteToken = String(quote.quote_token || "").trim();
+  if (!quoteToken) {
+    redirect(`/admin/quotes/${encodeURIComponent(id)}?quoteError=missing-token`);
+  }
+  if (!quote.email) {
+    redirect(`/admin/quotes/${encodeURIComponent(id)}?quoteError=missing-email`);
+  }
+
+  // Reserve the quote without consuming a send or clearing a client response.
+  const { data: reservationToken, error: reserveError } = await supabase.rpc(
+    "acquire_quote_proposal_send",
     { p_quote_id: id },
   );
 
-  if (reserveError || typeof sendNumber !== "number") {
+  if (reserveError || typeof reservationToken !== "string") {
     console.error("QUOTE SEND RESERVATION ERROR:", reserveError);
-    const limitReached = reserveError?.message?.includes("send limit");
-    redirect(
-      `/admin/quotes/${encodeURIComponent(id)}?quoteError=${limitReached ? "send-limit" : "not-eligible"}`,
-    );
+    const message = reserveError?.message?.toLowerCase() ?? "";
+    const quoteError = message.includes("send limit")
+      ? "send-limit"
+      : message.includes("already in progress")
+        ? "send-in-progress"
+        : message.includes("awaiting finalization")
+          ? "finalize-pending"
+          : "not-eligible";
+    redirect(`/admin/quotes/${encodeURIComponent(id)}?quoteError=${quoteError}`);
   }
 
   const projectName = String(
     quote.project_name || quote.project_type || "Website Project"
   );
-
-  const quoteToken = String(quote.quote_token || "").trim();
-
-  if (!quoteToken) {
-    redirect(`/admin/quotes/${encodeURIComponent(id)}?quoteError=missing-token`);
-  }
 
   const productionHost =
     process.env.VERCEL_PROJECT_PRODUCTION_URL ||
@@ -280,6 +286,11 @@ export async function sendQuoteProposal(formData: FormData) {
 
   if (saveError) {
     console.error("QUOTE PROPOSAL SAVE ERROR:", saveError);
+    const { error: releaseError } = await supabase.rpc(
+      "release_quote_proposal_send",
+      { p_quote_id: id, p_reservation_token: reservationToken },
+    );
+    if (releaseError) console.error("QUOTE SEND RESERVATION RELEASE ERROR:", releaseError);
     redirect(`/admin/quotes/${encodeURIComponent(id)}?quoteError=save`);
   }
 
@@ -333,28 +344,61 @@ export async function sendQuoteProposal(formData: FormData) {
     });
   } catch (emailError) {
     console.error("QUOTE PROPOSAL EMAIL ERROR:", emailError);
+    const { error: releaseError } = await supabase.rpc(
+      "release_quote_proposal_send",
+      { p_quote_id: id, p_reservation_token: reservationToken },
+    );
+    if (releaseError) console.error("QUOTE SEND RESERVATION RELEASE ERROR:", releaseError);
     redirect(`/admin/quotes/${encodeURIComponent(id)}?quoteError=email`);
   }
 
-  const sentAt = new Date().toISOString();
+  // Count and archive the response only after the email provider confirms success.
+  const { error: deliveredError } = await supabase.rpc(
+    "mark_quote_proposal_email_sent",
+    { p_quote_id: id, p_reservation_token: reservationToken },
+  );
 
-  const { error: updateError } = await supabase
-    .from("quote_requests")
-    .update({
-      status: "quoted",
-      quote_sent_at: sentAt,
-      updated_at: sentAt,
-    })
-    .eq("id", id);
+  if (deliveredError) {
+    console.error("QUOTE EMAIL DELIVERY MARKER ERROR:", deliveredError);
+    redirect(`/admin/quotes/${encodeURIComponent(id)}?quoteError=email-delivered-unmarked`);
+  }
 
-  if (updateError) {
-    console.error("QUOTE SENT STATUS UPDATE ERROR:", updateError);
-    redirect(`/admin/quotes/${encodeURIComponent(id)}?quoteError=save-status`);
+  const { error: finalizeError } = await supabase.rpc(
+    "finalize_quote_proposal_send",
+    { p_quote_id: id },
+  );
+
+  if (finalizeError) {
+    console.error("QUOTE SEND FINALIZATION ERROR:", finalizeError);
+    redirect(`/admin/quotes/${encodeURIComponent(id)}?quoteError=finalize-pending`);
   }
 
   revalidatePath("/admin");
   revalidatePath("/admin/quotes");
   revalidatePath(`/admin/quotes/${id}`);
 
+  redirect(`/admin/quotes/${encodeURIComponent(id)}?quoteSent=1`);
+}
+
+export async function finalizePendingQuoteProposal(formData: FormData) {
+  await requireAdmin();
+
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) redirect("/admin/quotes?error=missing-id");
+
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase.rpc(
+    "finalize_quote_proposal_send",
+    { p_quote_id: id },
+  );
+
+  if (error) {
+    console.error("PENDING QUOTE FINALIZATION ERROR:", error);
+    redirect(`/admin/quotes/${encodeURIComponent(id)}?quoteError=finalize-pending`);
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/quotes");
+  revalidatePath(`/admin/quotes/${id}`);
   redirect(`/admin/quotes/${encodeURIComponent(id)}?quoteSent=1`);
 }

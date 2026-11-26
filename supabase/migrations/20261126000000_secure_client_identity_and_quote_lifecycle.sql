@@ -26,8 +26,20 @@ CREATE INDEX IF NOT EXISTS clients_email_lookup_idx
 ALTER TABLE public.client_projects
   ADD COLUMN IF NOT EXISTS client_id UUID NULL;
 
-DO $$
+DO $
 BEGIN
+  -- Replace a legacy SET NULL relationship with RESTRICT so a client profile
+  -- cannot be deleted while projects still depend on its identity.
+  IF EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'client_projects_client_id_fkey'
+      AND conrelid = 'public.client_projects'::regclass
+      AND pg_get_constraintdef(oid) NOT ILIKE '%ON DELETE RESTRICT%'
+  ) THEN
+    ALTER TABLE public.client_projects
+      DROP CONSTRAINT client_projects_client_id_fkey;
+  END IF;
+
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint
     WHERE conname = 'client_projects_client_id_fkey'
@@ -38,7 +50,7 @@ BEGIN
       FOREIGN KEY (client_id) REFERENCES public.clients(id)
       ON DELETE RESTRICT;
   END IF;
-END $$;
+END $;
 
 -- Backfill legacy projects deterministically by normalized email.
 INSERT INTO public.clients (email)

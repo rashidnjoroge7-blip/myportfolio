@@ -22,7 +22,7 @@ function getClientRedirectUrl(): string {
   }
 
   return new URL(
-    "/auth/callback?next=%2Fclient%2Fdashboard",
+    "/auth/callback?next=%2Fclient%2Fset-password",
     url,
   ).toString();
 }

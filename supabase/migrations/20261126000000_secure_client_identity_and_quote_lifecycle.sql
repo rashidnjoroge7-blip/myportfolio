@@ -59,7 +59,12 @@ ALTER TABLE public.quote_requests
   ADD COLUMN IF NOT EXISTS quote_send_count INTEGER NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS quote_response_history JSONB NOT NULL DEFAULT '[]'::jsonb;
 
-DO $$
+-- Existing proposals already sent before this migration count as the first send.
+UPDATE public.quote_requests
+SET quote_send_count = 1
+WHERE quote_sent_at IS NOT NULL AND quote_send_count = 0;
+
+DO $
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint

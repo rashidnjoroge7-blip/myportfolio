@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { updateQuoteStatus } from "./actions";
-import { sendQuoteProposal } from "../actions";
+import { finalizePendingQuoteProposal, sendQuoteProposal } from "../actions";
 import { convertQuoteToProject, resendClientAccessLink } from "./convertToProject";
 
 export default async function QuoteDetailPage({
@@ -61,9 +61,9 @@ export default async function QuoteDetailPage({
     !existingProjectError;
 
   const canResendAccessLink =
-    quote.status === "completed" &&
     quote.client_response === "accepted" &&
-    Boolean(existingProject);
+    Boolean(existingProject) &&
+    !existingProjectError;
 
   const hasQuotationAmount =
     quote.quote_amount !== null &&
@@ -208,9 +208,17 @@ export default async function QuoteDetailPage({
               {quoteError === "not-found" && "Quotation record was not found."}
               {quoteError === "missing-token" &&
                 "This quotation has no secure client token."}
-              {quoteError === "save" && "Unable to save quotation details."}
+              {quoteError === "missing-email" &&
+                "This quotation has no client email address."}
+              {quoteError === "save" && "Unable to save quotation details. The send reservation was released."}
               {quoteError === "email" &&
-                "Quotation was saved, but email delivery failed."}
+                "Email delivery failed. The send reservation was released; the send counter and client response were not changed."}
+              {quoteError === "email-delivered-unmarked" &&
+                "The email provider accepted the message, but the database could not record delivery. Do not resend until this is reconciled."}
+              {quoteError === "finalize-pending" &&
+                "The email was sent and delivery was recorded, but the send counter still needs finalization."}
+              {quoteError === "send-in-progress" &&
+                "Another proposal send is already in progress for this quotation. Wait before trying again."}
               {quoteError === "save-status" &&
                 "Email was sent, but status could not be updated."}
               {quoteError === "project-exists" &&
@@ -221,6 +229,25 @@ export default async function QuoteDetailPage({
                 "This quotation is no longer eligible for another proposal."}
             </span>
           </div>
+        )}
+
+        {quote.proposal_send_email_sent_at && (
+          <form
+            action={finalizePendingQuoteProposal}
+            className="mb-6 flex flex-col gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="text-sm text-amber-800 dark:text-amber-300">
+              <p className="font-semibold">Proposal email delivery recorded</p>
+              <p className="mt-1">Finalize this successful send to update the send count and archive any client revision response.</p>
+            </div>
+            <input type="hidden" name="id" value={quote.id} />
+            <button
+              type="submit"
+              className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white"
+            >
+              Finalize sent proposal
+            </button>
+          </form>
         )}
 
         {conversion === "success" && (

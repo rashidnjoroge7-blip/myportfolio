@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
   const allowedNext = new Set([
     "/client/dashboard",
     "/client/reset-password",
+    "/client/set-password",
   ]);
   const redirectPath =
     requestedNext && allowedNext.has(requestedNext)

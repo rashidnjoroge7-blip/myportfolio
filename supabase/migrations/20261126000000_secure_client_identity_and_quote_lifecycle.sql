@@ -12,6 +12,10 @@ CREATE TABLE IF NOT EXISTS public.clients (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+UPDATE public.clients
+SET email = lower(btrim(email)), updated_at = now()
+WHERE email IS DISTINCT FROM lower(btrim(email));
+
 CREATE UNIQUE INDEX IF NOT EXISTS clients_auth_user_id_unique
   ON public.clients (auth_user_id) WHERE auth_user_id IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS clients_email_normalized_unique

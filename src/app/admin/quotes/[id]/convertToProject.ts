@@ -121,35 +121,52 @@ export async function resendClientAccessLink(
     redirect(`/admin/quotes/${quoteId}?accessLink=configuration-error`);
   }
 
-  // Only an accepted quotation that has already been converted
-  // may receive a new client access link.
+  // Resend is allowed for any accepted quotation that already has a
+  // client project. Some historical accepted records still carry "quoted"
+  // status, so status alone must not block this recovery action.
   const { data: quote, error: quoteError } = await supabase
     .from("quote_requests")
-    .select("id, email, status, client_response")
+    .select("id, email, client_response")
     .eq("id", quoteId)
     .maybeSingle();
 
   if (
     quoteError ||
     !quote ||
-    quote.status !== "completed" ||
-    quote.client_response !== "accepted"
+    quote.client_response !== "accepted" ||
+    !quote.email
   ) {
     redirect(`/admin/quotes/${quoteId}?accessLink=not-eligible`);
   }
 
   const { data: project, error: projectError } = await supabase
     .from("client_projects")
-    .select("id")
+    .select("id, client_id")
     .eq("quote_request_id", quoteId)
     .maybeSingle();
 
-  if (projectError || !project || !quote.email) {
+  if (projectError || !project?.client_id) {
+    redirect(`/admin/quotes/${quoteId}?accessLink=not-eligible`);
+  }
+
+  // Send only to the email on the client identity linked to this project.
+  // This prevents a changed quotation email from redirecting access elsewhere.
+  const { data: client, error: clientError } = await supabase
+    .from("clients")
+    .select("id, email")
+    .eq("id", project.client_id)
+    .maybeSingle();
+
+  if (
+    clientError ||
+    !client?.email ||
+    client.email.trim().toLowerCase() !== quote.email.trim().toLowerCase()
+  ) {
     redirect(`/admin/quotes/${quoteId}?accessLink=not-eligible`);
   }
 
   const { error: emailError } = await supabase.auth.signInWithOtp({
-    email: quote.email,
+    email: client.email,
     options: {
       shouldCreateUser: true,
       emailRedirectTo,

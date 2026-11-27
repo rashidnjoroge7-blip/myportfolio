@@ -1,68 +1,122 @@
 ﻿"use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 
 export default function ClientLoginPage() {
   const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loginMode, setLoginMode] = useState<"magic" | "password">("magic");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  // 🔥 Automatically log in if a magic link token is in the URL
+  // Validate existing sessions before allowing dashboard access.
   useEffect(() => {
-    const checkSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session) {
-        router.push("/client/dashboard");
+    let active = true;
+
+    async function checkSession() {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!active || !session) return;
+
+        const response = await fetch("/api/client/link-identity", {
+          method: "POST",
+        });
+
+        if (!active) return;
+
+        if (response.ok) {
+          router.replace("/client/dashboard");
+        } else {
+          setMessage(
+            "Your account could not be linked to a client profile. Please contact support.",
+          );
+        }
+      } catch (error) {
+        console.error("Session verification failed:", error);
+
+        if (active) {
+          setMessage("Unable to verify your session. Please try again.");
+        }
       }
-    };
+    }
+
     checkSession();
+
+    return () => {
+      active = false;
+    };
   }, [router]);
 
+  // Magic-link authentication.
   async function handleMagicLink(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setMessage("");
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent("/client/dashboard")}`,
-      },
-    });
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim().toLowerCase(),
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent("/client/dashboard")}`,
+        },
+      });
 
-    if (error) {
-      setMessage(`Error: ${error.message}`);
-    } else {
-      setMessage("Check your email for the magic link!");
+      if (error) {
+        setMessage("Unable to send the magic link. Please try again.");
+      } else {
+        setMessage("Check your email for the magic link!");
+      }
+    } catch (error) {
+      console.error("Magic link request failed:", error);
+      setMessage("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
+  // Password authentication with client identity verification.
   async function handlePasswordLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setMessage("");
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
 
-    if (error) {
-      setMessage(`Error: ${error.message}`);
-    } else {
-      router.push("/client/dashboard");
+      if (error) {
+        setMessage("Unable to sign in. Check your credentials and try again.");
+        return;
+      }
+
+      const response = await fetch("/api/client/link-identity", {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        setMessage(
+          "Your account could not be linked to a client profile. Please contact support.",
+        );
+        return;
+      }
+
+      router.replace("/client/dashboard");
+    } catch (error) {
+      console.error("Client password login failed:", error);
+      setMessage("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
   return (
@@ -72,6 +126,7 @@ export default function ClientLoginPage() {
           <h1 className="text-3xl font-bold text-[var(--text)] mb-2">
             Client Portal
           </h1>
+
           <p className="text-[var(--muted)] mb-6">
             Sign in to access your projects.
           </p>
@@ -88,6 +143,7 @@ export default function ClientLoginPage() {
             >
               Password
             </button>
+
             <button
               type="button"
               onClick={() => setLoginMode("magic")}
@@ -102,49 +158,64 @@ export default function ClientLoginPage() {
           </div>
 
           {loginMode === "password" ? (
-            <form onSubmit={handlePasswordLogin} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-[var(--text)] mb-1"
-                >
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-                />
-              </div>
+            <>
+              <form onSubmit={handlePasswordLogin} className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium text-[var(--text)] mb-1"
+                  >
+                    Email Address
+                  </label>
 
-              <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-[var(--text)] mb-1"
-                >
-                  Password
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-                />
-              </div>
+                  <input
+                    type="email"
+                    id="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                    className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  />
+                </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--accent-2)] transition-colors disabled:opacity-50"
-              >
-                {loading ? "Signing in..." : "Sign In"}
-              </button>
-            </form>
+                <div>
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-medium text-[var(--text)] mb-1"
+                  >
+                    Password
+                  </label>
+
+                  <input
+                    type="password"
+                    id="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                    className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--accent-2)] transition-colors disabled:opacity-50"
+                >
+                  {loading ? "Signing in..." : "Sign In"}
+                </button>
+              </form>
+
+              <div className="mt-3 text-right">
+                <Link
+                  href="/client/forgot-password"
+                  className="text-sm text-[var(--accent)] hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+            </>
           ) : (
             <form onSubmit={handleMagicLink} className="space-y-4">
               <div>
@@ -154,12 +225,14 @@ export default function ClientLoginPage() {
                 >
                   Email Address
                 </label>
+
                 <input
                   type="email"
                   id="email-magic"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  autoComplete="email"
                   className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                 />
               </div>

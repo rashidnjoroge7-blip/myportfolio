@@ -1,15 +1,35 @@
 import "server-only";
-import { getServerSession } from "next-auth";
+
 import { redirect } from "next/navigation";
-import { authOptions, isAdminEmail } from "@/lib/authOptions";
+import type { User } from "@supabase/supabase-js";
+import { isAdminEmail } from "@/lib/adminAccess";
+import { createSupabaseServerClient } from "@/lib/supabaseServer";
 
-export async function requireAdmin() {
-  const session = await getServerSession(authOptions);
+export async function getAdminUser(): Promise<User | null> {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
-  // If not signed in OR not an admin, send to NextAuth sign-in page
-  if (!session?.user?.email || !isAdminEmail(session.user.email)) {
-    redirect("/admin/login");
+  if (
+    error ||
+    !user?.email ||
+    !user.email_confirmed_at ||
+    !isAdminEmail(user.email)
+  ) {
+    return null;
   }
 
-  return session;
+  return user;
+}
+
+export async function requireAdmin(): Promise<User> {
+  const user = await getAdminUser();
+
+  if (!user) {
+    redirect("/admin/login?error=not_authorized");
+  }
+
+  return user;
 }

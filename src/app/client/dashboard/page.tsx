@@ -1,6 +1,6 @@
-﻿import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { linkAuthenticatedClient } from "@/lib/clientIdentity";
 
 type Milestone = {
   id: string;
@@ -78,35 +78,10 @@ function getProgress(milestones: Milestone[]) {
   return Math.round((completed / milestones.length) * 100);
 }
 
-async function getSupabase() {
-  const cookieStore = await cookies();
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
-            });
-          } catch {
-            // Cookie updates are handled by the proxy.
-          }
-        },
-      },
-    },
-  );
-}
-
 async function signOutAction() {
   "use server";
 
-  const supabase = await getSupabase();
+  const supabase = await createSupabaseServerClient();
 
   await supabase.auth.signOut();
 
@@ -114,7 +89,7 @@ async function signOutAction() {
 }
 
 export default async function ClientDashboardPage() {
-  const supabase = await getSupabase();
+  const supabase = await createSupabaseServerClient();
 
   const {
     data: { user },
@@ -122,6 +97,20 @@ export default async function ClientDashboardPage() {
 
   if (!user || !user.email) {
     redirect("/client/login");
+  }
+
+  // Resolve the authenticated user to one verified client profile.
+  const identityResult = await linkAuthenticatedClient(user);
+
+  if (!identityResult.success) {
+    console.error(
+      "Client dashboard identity verification failed:",
+      identityResult.reason,
+    );
+
+    await supabase.auth.signOut();
+
+    redirect("/client/login?error=client_access_not_linked");
   }
 
   const { data, error } = await supabase
@@ -139,7 +128,7 @@ export default async function ClientDashboardPage() {
         due_date
       )
     `)
-    .eq("client_email", user.email)
+    .eq("client_id", identityResult.clientId)
     .order("created_at", { ascending: false });
 
   const projects = (data ?? []) as unknown as ClientProject[];

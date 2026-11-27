@@ -1,14 +1,36 @@
 "use client";
 
-import { signIn } from "next-auth/react";
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
-export default function AdminLoginPage() {
+function AdminLoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const errorCode = searchParams.get("error");
+
+  const errorMessages: Record<string, string> = {
+    not_admin:
+      "This account is not authorized for the administrator portal. Use a confirmed email listed in ADMIN_EMAILS.",
+    not_authorized:
+      "This account is not authorized for the administrator portal. Use a confirmed email listed in ADMIN_EMAILS.",
+    session_required:
+      "Please sign in to continue.",
+    authentication_failed:
+      "Authentication could not be completed. Please try again.",
+  };
+
+  const urlErrorMessage = errorCode
+    ? errorMessages[errorCode] ?? ""
+    : "";
+
 
   async function handleEmailLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -17,28 +39,34 @@ export default function AdminLoginPage() {
     setError("");
 
     try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-        callbackUrl: "/admin",
+      const response = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+        }),
       });
 
-      if (result?.error) {
-        setError("Invalid email or password.");
-        setLoading(false);
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setError(
+          typeof result.error === "string"
+            ? result.error
+            : "Unable to sign in. Please try again.",
+        );
         return;
       }
 
-      if (result?.ok) {
-        window.location.href = result.url || "/admin";
-        return;
-      }
-
-      setError("Unable to sign in. Please try again.");
-      setLoading(false);
+      router.replace("/admin");
+      router.refresh();
     } catch {
       setError("Something went wrong. Please try again.");
+    } finally {
       setLoading(false);
     }
   }
@@ -47,9 +75,17 @@ export default function AdminLoginPage() {
     setGoogleLoading(true);
     setError("");
 
-    await signIn("google", {
-      callbackUrl: "/admin",
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent("/admin")}`,
+      },
     });
+
+    if (oauthError) {
+      setError(oauthError.message);
+      setGoogleLoading(false);
+    }
   }
 
   return (
@@ -96,9 +132,9 @@ export default function AdminLoginPage() {
             />
           </div>
 
-          {error && (
+          {(error || urlErrorMessage) && (
             <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
-              {error}
+              {error || urlErrorMessage}
             </div>
           )}
 
@@ -159,5 +195,19 @@ export default function AdminLoginPage() {
         </p>
       </div>
     </main>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center text-sm text-gray-500">
+          Loading administrator sign-in...
+        </div>
+      }
+    >
+      <AdminLoginForm />
+    </Suspense>
   );
 }

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions, isAdminEmail } from "@/lib/authOptions";
+import { getAdminUser } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const runtime = "nodejs";
@@ -53,13 +52,10 @@ function matchesImageSignature(type: string, bytes: Uint8Array): boolean {
 export async function POST(request: Request) {
   try {
     // Authenticate before processing the uploaded file.
-    const session = await getServerSession(authOptions);
+    const admin = await getAdminUser();
 
-    if (!session?.user?.email || !isAdminEmail(session.user.email)) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+    if (!admin) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Reject oversized requests before parsing multipart data.

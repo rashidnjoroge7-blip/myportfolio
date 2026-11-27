@@ -1,7 +1,7 @@
 import "server-only";
 
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import { requireAdmin } from "@/lib/adminAuth";
+import { getAdminUser } from "@/lib/adminAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { siteConfig } from "@/lib/siteConfig";
 
@@ -41,8 +41,12 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  // Protect the PDF download using the existing admin authentication.
-  await requireAdmin();
+  // Protect the PDF download with a server-verified administrator identity.
+  const admin = await getAdminUser();
+
+  if (!admin) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   try {
     const { id } = await params;

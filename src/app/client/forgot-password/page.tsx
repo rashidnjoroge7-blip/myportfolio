@@ -39,7 +39,7 @@ export default function ForgotPasswordPage() {
 
       setRequested(true);
       setMessage(
-        "If a client portal account exists for that email, a six-digit recovery code has been sent. Check your inbox and spam folder.",
+        "If a client portal account exists for that email, an eight-digit recovery code has been sent. Check your inbox and spam folder.",
       );
     } catch (error) {
       console.error("Unexpected password recovery error:", error);
@@ -59,7 +59,7 @@ export default function ForgotPasswordPage() {
         </h1>
         <p className="mt-2 mb-6 text-sm text-[var(--muted)]">
           Enter the email address associated with your client portal account.
-          We will send a six-digit recovery code.
+          We will send an eight-digit recovery code.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">

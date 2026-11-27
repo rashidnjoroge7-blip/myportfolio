@@ -35,7 +35,7 @@ Current database characteristics:
 - Signature methods currently allow `typed_electronic` and `external`.
 - Contract signatures and events have append-only triggers.
 - A contract version with signature evidence cannot be updated or deleted.
-- RLS is enabled on all four tables. Clients have SELECT-only policies scoped through `clients.auth_user_id = auth.uid()`. Writes are reserved for trusted server-side operations.
+- RLS is enabled on all four tables. Clients have SELECT-only policies scoped through `clients.auth_user_id = auth.uid()`. A follow-up migration hides `draft` contracts, versions and signatures until an administrator advances the contract into client review. Client-visible audit events require both `client_visible = true` and a non-draft contract. Writes are reserved for trusted server-side operations.
 - The live database has no payment/transaction table yet.
 
 Important source-control gap:
@@ -86,8 +86,9 @@ Important source-control gap:
 ## Current implementation status
 
 - The four live tables remain empty; no contract has been generated, sent or signed.
-- The Supabase migration `20261127065621_create_contract_draft_from_accepted_quote.sql` is registered. A negative-path test confirmed that a legacy accepted quotation linked to an already-active project is rejected, and no contract/version/signature/event rows were added.
-- The Vercel build for this branch is currently blocked because `DIRECT_URL` is scoped only to the previous Preview branch. The existing secret is not exposed in this repository or chat; add a Preview environment-variable entry scoped specifically to `feat/contract-management-foundation` before running the Preview build.
+- The Supabase migrations `20261127065621_create_contract_draft_from_accepted_quote.sql` and `20261127070000_hide_internal_contract_drafts_from_clients.sql` are registered. A rollback-only success-path test verified draft creation, version linkage, one audit event, safe idempotent retry and unchanged project status. A negative-path test confirmed that a legacy accepted quotation linked to an already-active project is rejected. All test data was rolled back.
+- Prisma validation, Prisma Client generation, scoped ESLint and TypeScript validation passed in an isolated sandbox.
+- The Vercel build for this branch is currently blocked because `DIRECT_URL` is scoped only to the previous Preview branch. The existing secret is not available to copy through the connected Vercel environment tools; add a Preview environment-variable entry scoped specifically to `feat/contract-management-foundation` before running the Preview build.
 - Historical client projects already marked `active` are preserved. The live conversion function creates new client projects with `draft` status; automatic contract creation is restricted to those draft records.
 
 ## Explicitly out of scope for the foundation

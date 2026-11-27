@@ -138,6 +138,7 @@ export default async function AdminContractDetailPage({
                 <h3 className="text-sm font-semibold text-[var(--text)]">Source quotation snapshot</h3>
                 <p className="mt-2 text-sm text-[var(--muted)]">Quote amount: {getValue(quoteSnapshot, "quote_amount")} {getString(quoteSnapshot, "quote_currency")}</p>
                 <p className="mt-1 text-sm text-[var(--muted)]">Valid until: {getValue(quoteSnapshot, "quote_valid_until")}</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">Client acceptance recorded: {quote?.client_response_at ? new Date(quote.client_response_at).toLocaleString("en-KE", { timeZone: "Africa/Nairobi" }) : "Not available"}</p>
                 <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--text)]">{getValue(quoteSnapshot, "quote_notes")}</p>
               </div>
             </section>

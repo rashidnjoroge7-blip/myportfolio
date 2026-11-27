@@ -7,6 +7,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { updateQuoteStatus } from "./actions";
 import { finalizePendingQuoteProposal, sendQuoteProposal } from "../actions";
 import { convertQuoteToProject, resendClientAccessLink } from "./convertToProject";
+import { createContractDraft } from "../../contracts/actions";
 
 export default async function QuoteDetailPage({
   params,
@@ -21,13 +22,14 @@ export default async function QuoteDetailPage({
     email?: string;
     conversion?: string;
     accessLink?: string;
+    contractError?: string;
   }>;
 }) {
   await requireAdmin();
 
   const { id } = await params;
 
-  const { success, quoteSent, quoteError, updated, email, conversion, accessLink } = await searchParams;
+  const { success, quoteSent, quoteError, updated, email, conversion, accessLink, contractError } = await searchParams;
 
   const supabase = getSupabaseAdmin();
 
@@ -46,12 +48,25 @@ export default async function QuoteDetailPage({
     error: existingProjectError,
   } = await supabase
     .from("client_projects")
-    .select("id, title, status, created_at")
+    .select("id, title, status, created_at, client_id, client_email")
     .eq("quote_request_id", quote.id)
     .maybeSingle();
 
   if (existingProjectError) {
     console.error("Unable to check existing client project:", existingProjectError);
+  }
+
+  const {
+    data: existingContract,
+    error: existingContractError,
+  } = await supabase
+    .from("contracts")
+    .select("id, contract_number, status")
+    .eq("quote_request_id", quote.id)
+    .maybeSingle();
+
+  if (existingContractError) {
+    console.error("Unable to check existing contract:", existingContractError);
   }
 
   const canConvertQuote =
@@ -69,6 +84,15 @@ export default async function QuoteDetailPage({
     quote.quote_amount !== null &&
     quote.quote_amount !== undefined &&
     Number(quote.quote_amount) > 0;
+
+  const canCreateContractDraft =
+    quote.client_response === "accepted" &&
+    existingProject?.status === "draft" &&
+    Boolean(existingProject.client_id) &&
+    hasQuotationAmount &&
+    !existingProjectError &&
+    !existingContractError &&
+    !existingContract;
 
   const currency = quote.quote_currency || "KES";
 
@@ -294,6 +318,22 @@ export default async function QuoteDetailPage({
         {accessLink === "not-eligible" && (
           <div role="alert" className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-5 py-4 text-sm font-medium text-amber-700 dark:text-amber-400">
             This quotation is not eligible for a client access-link resend. Verify that it has been accepted, converted, and linked to a client project.
+          </div>
+        )}
+
+        {contractError && (
+          <div role="alert" className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm font-medium text-red-700 dark:text-red-400">
+            Contract draft was not created. {
+              contractError === "not-accepted" ? "The quotation must be accepted first." :
+              contractError === "missing-project" ? "Create the linked client project first." :
+              contractError === "active-project" ? "Only a draft client project can enter the new contract workflow. Legacy active projects require manual review." :
+              contractError === "missing-client" ? "The project does not have a valid client profile." :
+              contractError === "identity-mismatch" ? "The quotation, project and client profile email addresses do not match." :
+              contractError === "missing-price" ? "A positive approved quotation amount is required." :
+              contractError === "currency" ? "The quotation currency is not supported." :
+              contractError === "reconcile" ? "An existing contract record needs administrative reconciliation." :
+              "Check the server logs, then retry only after the underlying issue is resolved."
+            }
           </div>
         )}
 
@@ -751,6 +791,63 @@ export default async function QuoteDetailPage({
                 </p>
               </form>
             )}
+
+            {/* Internal Contract Draft */}
+            {existingContract ? (
+              <section className="space-y-3 rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] p-6">
+                <h2 className="text-lg font-semibold text-[var(--text)]">Contract Management</h2>
+                <p className="text-sm text-[var(--muted)]">
+                  This accepted quotation already has a linked contract.
+                </p>
+                <Link
+                  href={`/admin/contracts/${existingContract.id}`}
+                  className="flex w-full items-center justify-center rounded-lg border border-[var(--accent)] px-4 py-3 text-sm font-semibold text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white"
+                >
+                  Review {existingContract.contract_number}
+                </Link>
+              </section>
+            ) : canCreateContractDraft ? (
+              <form
+                action={createContractDraft}
+                className="space-y-4 rounded-2xl border border-[var(--accent)] bg-[var(--surface)] p-6"
+              >
+                <input type="hidden" name="quoteId" value={quote.id} />
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--text)]">Create Contract Draft</h2>
+                  <p className="mt-1 text-sm text-[var(--muted)]">
+                    Creates an internal, versioned snapshot from this accepted quotation. It will not be sent to the client or activate the project.
+                  </p>
+                </div>
+                <div>
+                  <label htmlFor="contractTitle" className="mb-1 block text-sm font-medium text-[var(--text)]">
+                    Contract title
+                  </label>
+                  <input
+                    id="contractTitle"
+                    name="contractTitle"
+                    maxLength={180}
+                    defaultValue={`${quote.name} - ${quote.project_type} Service Agreement`}
+                    className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--bg)] px-3 py-3 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full rounded-lg bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--accent-2)]"
+                >
+                  Create Internal Draft
+                </button>
+                <p className="text-center text-xs leading-5 text-[var(--muted)]">
+                  Requires an accepted quotation, a linked client profile and a draft client project.
+                </p>
+              </form>
+            ) : quote.client_response === "accepted" && existingProject?.status === "active" ? (
+              <section className="space-y-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6">
+                <h2 className="text-lg font-semibold text-amber-800 dark:text-amber-300">Contract Draft Restricted</h2>
+                <p className="text-sm text-amber-800 dark:text-amber-300">
+                  This is a legacy active project. It is not eligible for automatic contract drafting. Review its history before making any changes.
+                </p>
+              </section>
+            ) : null}
 
             {/* Resend Client Access */}
             {canResendAccessLink && (

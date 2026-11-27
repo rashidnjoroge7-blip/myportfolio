@@ -622,6 +622,18 @@ Prefer simple, maintainable architecture over unnecessary complexity.
 
 ## 16. Contract Management and Client Acceptance
 
+**Status: IN PROGRESS — schema reconciliation and application foundation.**
+
+Repository/live-environment audit on 27 November 2026 found that the live Supabase project already had empty `contracts`, `contract_versions`, `contract_signatures` and `contract_events` tables with client-scoped SELECT policies and append-only signature/event protections. These objects were not represented in the tracked migration history or Prisma schema. Three migrations now bring the foundation under source control:
+
+- `20261127064722_contract_management_foundation.sql` — baseline tables, constraints, indexes, append-only protections and client read policies.
+- `20261127065621_create_contract_draft_from_accepted_quote.sql` — service-role-only, atomic contract/version/audit creation from an accepted quotation linked to a draft client project.
+- `20261127070518_hide_internal_contract_drafts_from_clients.sql` — hides internal drafts and their versions/signatures from clients until explicitly advanced into client review.
+
+The draft RPC verifies accepted quotation state, quote/project/client email identity, positive approved price and supported currency; rejects legacy active projects; and returns an existing draft on retry. Client SELECT policies expose only non-draft contracts, versions/signatures for non-draft contracts, and explicitly client-visible events. The RPC is executable by `service_role` only.
+
+Rollback-only tests verified successful draft/version/audit creation, idempotent retry, unchanged project status and rejection of a legacy active project. All test rows were rolled back; the four contract tables remain empty. Prisma validation/client generation, TypeScript and ESLint passed (four existing warnings remain in sample Supabase Edge Functions). The isolated Next.js production build and Vercel Preview deployment both completed successfully. Prisma schema-only commands no longer require a branch-scoped `DIRECT_URL`; real database/migration operations still require the secret. No contract has been sent or signed, no payment integration exists, and no project was activated.
+
 ### Objective
 
 Introduce a dedicated contract management workflow that formalises the agreement between UniHost Technologies and its clients before project implementation begins.

@@ -16,6 +16,7 @@ model clients {
   created_at     DateTime          @default(now()) @db.Timestamptz(6)
   updated_at     DateTime          @default(now()) @db.Timestamptz(6)
   client_projects client_projects[]
+  contracts       contracts[]
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -31,6 +32,7 @@ model client_projects {
   quote_requests   quote_requests? @relation(fields: [quote_request_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   clients          clients?        @relation(fields: [client_id], references: [id], onDelete: Restrict)
   milestones       milestones[]
+  contracts        contracts[]
 
   @@index([client_id, created_at(sort: Desc)], map: "client_projects_client_id_created_at_idx")
 }
@@ -102,8 +104,102 @@ model quote_requests {
   proposal_send_reserved_at DateTime?   @db.Timestamptz(6)
   proposal_send_email_sent_at DateTime? @db.Timestamptz(6)
   client_projects     client_projects[]
+  contracts           contracts?
 
   @@index([created_at(sort: Desc)])
   @@index([email])
   @@index([status])
+}
+
+/// Contract header. Client-facing access is SELECT-only through Supabase RLS;
+/// mutations must remain in authenticated server actions using the service role.
+model contracts {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contract_number   String    @unique(map: "contracts_contract_number_key") @default(dbgenerated("((('UH-CON-'::text || to_char((CURRENT_DATE)::timestamp with time zone, 'YYYY'::text)) || '-'::text) || lpad((nextval('contract_number_seq'::regclass))::text, 6, '0'::text))"))
+  quote_request_id  String    @unique(map: "contracts_quote_request_id_key") @db.Uuid
+  client_id         String    @db.Uuid
+  client_project_id String?   @db.Uuid
+  status            String    @default("draft")
+  current_version_id String?  @db.Uuid
+  created_at        DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime  @default(now()) @db.Timestamptz(6)
+
+  quote_requests quote_requests @relation(fields: [quote_request_id], references: [id], onDelete: Restrict)
+  clients        clients        @relation(fields: [client_id], references: [id], onDelete: Restrict)
+  client_projects client_projects? @relation(fields: [client_project_id], references: [id], onDelete: SetNull)
+  versions       contract_versions[] @relation("ContractVersions")
+  current_version contract_versions? @relation("ContractCurrentVersion", fields: [current_version_id], references: [id], onDelete: Restrict)
+  contract_events contract_events[]
+
+  @@index([client_id], map: "contracts_client_id_idx")
+  @@index([quote_request_id], map: "contracts_quote_request_id_idx")
+  @@index([status], map: "contracts_status_idx")
+}
+
+/// Each revision is a snapshot. A version linked to signature evidence is immutable.
+model contract_versions {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contract_id     String    @db.Uuid
+  version_number  Int
+  title           String
+  scope_snapshot  Json      @default("{}")
+  quote_snapshot  Json      @default("{}")
+  terms_text      String
+  total_amount    Decimal   @db.Decimal(12, 2)
+  currency        String
+  deposit_percent Decimal   @default(50) @db.Decimal(5, 2)
+  balance_percent Decimal   @default(50) @db.Decimal(5, 2)
+  document_path   String?
+  document_sha256 String?   @db.Char(64)
+  issued_at       DateTime? @db.Timestamptz(6)
+  expires_at      DateTime? @db.Timestamptz(6)
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+
+  contract             contracts @relation("ContractVersions", fields: [contract_id], references: [id], onDelete: Restrict)
+  current_for_contracts contracts[] @relation("ContractCurrentVersion")
+  signatures           contract_signatures[]
+  contract_events      contract_events[]
+
+  @@unique([contract_id, version_number], map: "contract_versions_contract_id_version_number_key")
+  @@unique([id, contract_id], map: "contract_versions_id_contract_id_unique")
+  @@index([contract_id], map: "contract_versions_contract_id_idx")
+}
+
+/// Append-only signature evidence is tied to an exact immutable contract version.
+model contract_signatures {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contract_id     String   @db.Uuid
+  version_id      String   @db.Uuid
+  signer_role     String
+  signer_name     String
+  auth_user_id    String?  @db.Uuid
+  signature_method String
+  consent_text    String
+  document_sha256 String   @db.Char(64)
+  signed_at       DateTime @default(now()) @db.Timestamptz(6)
+  metadata        Json     @default("{}")
+
+  contract_version contract_versions @relation(fields: [version_id, contract_id], references: [id, contract_id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([version_id, signer_role], map: "contract_signatures_version_id_signer_role_key")
+  @@index([contract_id], map: "contract_signatures_contract_id_idx")
+}
+
+/// Append-only audit events. Client visibility is explicit per event.
+model contract_events {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contract_id       String    @db.Uuid
+  version_id        String?   @db.Uuid
+  event_type        String
+  actor_auth_user_id String?  @db.Uuid
+  actor_role        String?
+  client_visible    Boolean   @default(false)
+  details           Json      @default("{}")
+  created_at        DateTime  @default(now()) @db.Timestamptz(6)
+
+  contracts        contracts @relation(fields: [contract_id], references: [id], onDelete: Restrict)
+  contract_versions contract_versions? @relation(fields: [version_id], references: [id], onDelete: Restrict)
+
+  @@index([contract_id], map: "contract_events_contract_id_idx")
+  @@index([created_at], map: "contract_events_created_at_idx")
 }

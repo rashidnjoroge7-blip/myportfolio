@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function ClientLoginPage() {
   const router = useRouter();
@@ -178,6 +179,17 @@ export default function ClientLoginPage() {
             <p className="mt-4 text-sm text-center text-[var(--accent)]">
               {message}
             </p>
+          )}
+
+          {loginMode === "password" && (
+            <div className="mt-4 text-center">
+              <Link
+                href="/client/forgot-password"
+                className="text-sm font-medium text-[var(--accent)] hover:underline"
+              >
+                Forgot your password?
+              </Link>
+            </div>
           )}
         </div>
       </div>

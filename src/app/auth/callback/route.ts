@@ -1,17 +1,21 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
+import { linkAuthenticatedClient } from "@/lib/clientIdentity";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
-
   const code = searchParams.get("code");
-  const next = searchParams.get("next");
+  const requestedNext = searchParams.get("next");
 
-  // Only allow safe internal redirect paths.
+  const allowedNext = new Set([
+    "/client/dashboard",
+    "/client/reset-password",
+    "/client/set-password",
+  ]);
   const redirectPath =
-    next && next.startsWith("/") && !next.startsWith("//")
-      ? next
+    requestedNext && allowedNext.has(requestedNext)
+      ? requestedNext
       : "/client/dashboard";
 
   if (!code) {
@@ -21,7 +25,6 @@ export async function GET(request: NextRequest) {
   }
 
   const cookieStore = await cookies();
-
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -30,7 +33,6 @@ export async function GET(request: NextRequest) {
         getAll() {
           return cookieStore.getAll();
         },
-
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
             cookieStore.set(name, value, options);
@@ -40,13 +42,35 @@ export async function GET(request: NextRequest) {
     },
   );
 
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  const { error: exchangeError } =
+    await supabase.auth.exchangeCodeForSession(code);
 
-  if (error) {
-    console.error("Supabase callback error:", error.message);
-
+  if (exchangeError) {
+    console.error("Supabase callback error:", exchangeError.message);
     return NextResponse.redirect(
       new URL("/client/login?error=authentication_failed", origin),
+    );
+  }
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    await supabase.auth.signOut();
+    return NextResponse.redirect(
+      new URL("/client/login?error=authentication_failed", origin),
+    );
+  }
+
+  const { error: identityError } = await linkAuthenticatedClient(user);
+
+  if (identityError) {
+    console.error("Client account linking rejected:", identityError);
+    await supabase.auth.signOut();
+    return NextResponse.redirect(
+      new URL("/client/login?error=account_not_provisioned", origin),
     );
   }
 

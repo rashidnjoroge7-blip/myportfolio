@@ -57,8 +57,8 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    if (!recoveryVerified && !/^\d{6}$/.test(normalizedToken)) {
-      setMessage("Enter the six-digit recovery code from your email.");
+    if (!recoveryVerified && !/^\\d{8}$/.test(normalizedToken)) {
+      setMessage("Enter the eight-digit recovery code from your email.");
       return;
     }
 
@@ -133,7 +133,7 @@ export default function ResetPasswordPage() {
         <p className="mt-2 mb-6 text-sm text-[var(--muted)]">
           {recoveryVerified
             ? "Choose a new password for your client portal account."
-            : "Enter the six-digit code sent to your email address, then choose a new password."}
+            : "Enter the eight-digit code sent to your email address, then choose a new password."}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -162,20 +162,20 @@ export default function ResetPasswordPage() {
                   htmlFor="token"
                   className="mb-1 block text-sm font-medium text-[var(--text)]"
                 >
-                  Six-digit recovery code
+                  Eight-digit recovery code
                 </label>
                 <input
                   id="token"
                   type="text"
                   inputMode="numeric"
                   autoComplete="one-time-code"
-                  pattern="[0-9]{6}"
-                  minLength={6}
-                  maxLength={6}
+                  pattern="[0-9]{8}"
+                  minLength={8}
+                  maxLength={8}
                   required
                   value={token}
                   onChange={(event) =>
-                    setToken(event.target.value.replace(/\D/g, "").slice(0, 6))
+                    setToken(event.target.value.replace(/\\D/g, "").slice(0, 8))
                   }
                   className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--bg)] px-3 py-3 text-sm tracking-[0.3em] text-[var(--text)]"
                 />

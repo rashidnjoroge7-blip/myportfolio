@@ -29,7 +29,7 @@ Replace the body with:
 
 <p>We received a request to reset your client portal password.</p>
 
-<p>Enter this six-digit code on the password reset page:</p>
+<p>Enter this eight-digit code on the password reset page:</p>
 
 <p style="font-size: 30px; font-weight: 700; letter-spacing: 8px; padding: 12px 0;">
   {{ .Token }}
@@ -45,13 +45,13 @@ Replace the body with:
 </p>
 ```
 
-**Important:** Do not include `{{ .ConfirmationURL }}` or a URL containing `{{ .TokenHash }}` in this recovery template. The email link should only open the app page; the user must manually enter the six-digit code. This prevents automated email link scanners from consuming the recovery token.
+**Important:** Do not include `{{ .ConfirmationURL }}` or a URL containing `{{ .TokenHash }}` in this recovery template. The email link should only open the app page; the user must manually enter the eight-digit code. This prevents automated email link scanners from consuming the recovery token.
 
 ## 3. Expected recovery flow
 
 1. User opens **Client Portal → Forgot your password**.
 2. User submits their email address.
-3. Supabase sends the six-digit recovery code.
+3. Supabase sends the eight-digit recovery code.
 4. User opens the reset page and enters their email, code, and new password.
 5. The application calls `supabase.auth.verifyOtp({ email, token, type: "recovery" })`.
 6. After OTP verification, the application calls `supabase.auth.updateUser({ password })`.
@@ -61,7 +61,7 @@ The first-time activation flow is separate: invitation/magic-link callback → `
 ## 4. Testing checklist
 
 - Request a recovery code for a known client account.
-- Verify the email contains a six-digit code and links only to the reset page.
+- Verify the email contains an eight-digit code and links only to the reset page.
 - Open the email on a client with link scanning enabled; the code must remain usable.
 - Submit the code and a new password.
 - Confirm login succeeds with the new password and fails with the old one.

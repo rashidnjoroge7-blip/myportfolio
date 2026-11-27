@@ -86,7 +86,7 @@ Important source-control gap:
 ## Current implementation status
 
 - The four live tables remain empty; no contract has been generated, sent or signed.
-- The Supabase migrations `20261127065621_create_contract_draft_from_accepted_quote.sql` and `20261127070000_hide_internal_contract_drafts_from_clients.sql` are registered. A rollback-only success-path test verified draft creation, version linkage, one audit event, safe idempotent retry and unchanged project status. A negative-path test confirmed that a legacy accepted quotation linked to an already-active project is rejected. All test data was rolled back.
+- The Supabase migrations `20261127065621_create_contract_draft_from_accepted_quote.sql` and `20261127070518_hide_internal_contract_drafts_from_clients.sql` are registered. A rollback-only success-path test verified draft creation, version linkage, one audit event, safe idempotent retry and unchanged project status. A negative-path test confirmed that a legacy accepted quotation linked to an already-active project is rejected. All test data was rolled back.
 - Prisma validation, Prisma Client generation, scoped ESLint and TypeScript validation passed in an isolated sandbox.
 - The Vercel build for this branch is currently blocked because `DIRECT_URL` is scoped only to the previous Preview branch. The existing secret is not available to copy through the connected Vercel environment tools; add a Preview environment-variable entry scoped specifically to `feat/contract-management-foundation` before running the Preview build.
 - Historical client projects already marked `active` are preserved. The live conversion function creates new client projects with `draft` status; automatic contract creation is restricted to those draft records.

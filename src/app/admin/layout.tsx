@@ -22,6 +22,10 @@ export default function AdminLayout({
               Quotations
             </Link>
 
+            <Link href="/admin/contracts" className="hover:text-[var(--accent)]">
+              Contracts
+            </Link>
+
             <Link href="/" className="hover:text-[var(--accent)]">
               View site ↗
             </Link>

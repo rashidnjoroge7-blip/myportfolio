@@ -1,39 +1,51 @@
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
-
   const code = searchParams.get("code");
-  const next = searchParams.get("next");
+  const isAdminFlow = searchParams.get("next") === "/admin";
 
-  // Only allow safe internal redirect paths.
-  const redirectPath =
-    next && next.startsWith("/") && !next.startsWith("//")
-      ? next
-      : "/client/dashboard";
+  // Accept only the known application destinations after authentication.
+  const destination = isAdminFlow ? "/admin" : "/client/dashboard";
+  const loginPath = isAdminFlow ? "/admin/login" : "/client/login";
 
   if (!code) {
     return NextResponse.redirect(
-      new URL("/client/login?error=missing_code", origin),
+      new URL(`${loginPath}?error=missing_code`, origin),
     );
   }
 
-  const cookieStore = await cookies();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabasePublishableKey =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
+  if (!supabaseUrl || !supabasePublishableKey) {
+    return NextResponse.redirect(
+      new URL(`${loginPath}?error=configuration`, origin),
+    );
+  }
+
+  const response = NextResponse.redirect(new URL(destination, origin));
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabasePublishableKey,
     {
       cookies: {
         getAll() {
-          return cookieStore.getAll();
+          return request.cookies.getAll();
         },
+        setAll(cookiesToSet, headers) {
+          cookiesToSet.forEach(({ name, value }) => {
+            request.cookies.set(name, value);
+          });
 
-        setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
+            response.cookies.set(name, value, options);
+          });
+
+          Object.entries(headers).forEach(([key, value]) => {
+            response.headers.set(key, value);
           });
         },
       },
@@ -44,11 +56,11 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     console.error("Supabase callback error:", error.message);
-
     return NextResponse.redirect(
-      new URL("/client/login?error=authentication_failed", origin),
+      new URL(`${loginPath}?error=authentication_failed`, origin),
     );
   }
 
-  return NextResponse.redirect(new URL(redirectPath, origin));
+  response.headers.set("Cache-Control", "private, no-store");
+  return response;
 }

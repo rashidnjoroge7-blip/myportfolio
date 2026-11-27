@@ -1,6 +1,5 @@
-﻿import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
+import { createSupabaseServerClient } from "@/lib/supabaseServer";
 
 type Milestone = {
   id: string;
@@ -78,35 +77,10 @@ function getProgress(milestones: Milestone[]) {
   return Math.round((completed / milestones.length) * 100);
 }
 
-async function getSupabase() {
-  const cookieStore = await cookies();
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
-            });
-          } catch {
-            // Cookie updates are handled by the proxy.
-          }
-        },
-      },
-    },
-  );
-}
-
 async function signOutAction() {
   "use server";
 
-  const supabase = await getSupabase();
+  const supabase = await createSupabaseServerClient();
 
   await supabase.auth.signOut();
 
@@ -114,7 +88,7 @@ async function signOutAction() {
 }
 
 export default async function ClientDashboardPage() {
-  const supabase = await getSupabase();
+  const supabase = await createSupabaseServerClient();
 
   const {
     data: { user },

@@ -1,7 +1,7 @@
 "use client";
 
-import { signIn } from "next-auth/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
@@ -10,6 +10,17 @@ export default function AdminLoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get("error");
+    if (code === "not_admin" || code === "not_authorized") {
+      setError("This account is not authorized for the administrator portal. Use a confirmed email listed in ADMIN_EMAILS.");
+    } else if (code === "session_required") {
+      setError("Please sign in to continue.");
+    } else if (code === "authentication_failed") {
+      setError("Authentication could not be completed. Please try again.");
+    }
+  }, []);
+
   async function handleEmailLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
@@ -17,26 +28,18 @@ export default function AdminLoginPage() {
     setError("");
 
     try {
-      const result = await signIn("credentials", {
-        email,
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
         password,
-        redirect: false,
-        callbackUrl: "/admin",
       });
 
-      if (result?.error) {
+      if (signInError) {
         setError("Invalid email or password.");
         setLoading(false);
         return;
       }
 
-      if (result?.ok) {
-        window.location.href = result.url || "/admin";
-        return;
-      }
-
-      setError("Unable to sign in. Please try again.");
-      setLoading(false);
+      window.location.assign("/admin");
     } catch {
       setError("Something went wrong. Please try again.");
       setLoading(false);
@@ -47,9 +50,17 @@ export default function AdminLoginPage() {
     setGoogleLoading(true);
     setError("");
 
-    await signIn("google", {
-      callbackUrl: "/admin",
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent("/admin")}`,
+      },
     });
+
+    if (oauthError) {
+      setError(oauthError.message);
+      setGoogleLoading(false);
+    }
   }
 
   return (

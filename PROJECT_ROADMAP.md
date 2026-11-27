@@ -622,6 +622,11 @@ Prefer simple, maintainable architecture over unnecessary complexity.
 
 ## 16. Contract Management and Client Acceptance
 
+**Status: IN PROGRESS — schema reconciliation and application foundation.**
+
+Repository/live-environment audit on 27 November 2026 found that the live Supabase project already has empty `contracts`, `contract_versions`, `contract_signatures` and `contract_events` tables with client-scoped SELECT policies and append-only signature/event protections. These objects were not yet represented in the tracked migration history or Prisma schema. The new `20261127000000_contract_management_foundation.sql` migration and Prisma models bring that foundation under source control. No contract has been created, sent, signed or activated. No payment table or Daraja integration exists yet.
+
+
 ### Objective
 
 Introduce a dedicated contract management workflow that formalises the agreement between UniHost Technologies and its clients before project implementation begins.

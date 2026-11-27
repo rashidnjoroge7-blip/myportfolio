@@ -85,11 +85,14 @@ Important source-control gap:
 
 ## Current implementation status
 
-- The four live tables remain empty; no contract has been generated, sent or signed.
-- The Supabase migrations `20261127065621_create_contract_draft_from_accepted_quote.sql` and `20261127070518_hide_internal_contract_drafts_from_clients.sql` are registered. A rollback-only success-path test verified draft creation, version linkage, one audit event, safe idempotent retry and unchanged project status. A negative-path test confirmed that a legacy accepted quotation linked to an already-active project is rejected. All test data was rolled back.
-- Prisma validation, Prisma Client generation, scoped ESLint and TypeScript validation passed in an isolated sandbox.
-- The Vercel build for this branch is currently blocked because `DIRECT_URL` is scoped only to the previous Preview branch. The existing secret is not available to copy through the connected Vercel environment tools; add a Preview environment-variable entry scoped specifically to `feat/contract-management-foundation` before running the Preview build.
-- Historical client projects already marked `active` are preserved. The live conversion function creates new client projects with `draft` status; automatic contract creation is restricted to those draft records.
+- The four live contract tables remain empty. The draft workflow tests ran inside transactions and were rolled back; no contract has been persisted, sent or signed.
+- All three Supabase migrations are registered: `20261127064722_contract_management_foundation.sql`, `20261127065621_create_contract_draft_from_accepted_quote.sql` and `20261127070518_hide_internal_contract_drafts_from_clients.sql`.
+- A rollback-only success-path test verified draft contract creation, version-1 linkage, one audit event, idempotent retry and unchanged `draft` project status. A negative-path test confirmed that a legacy accepted quotation linked to an `active` project is rejected. The four contract tables returned zero rows after rollback.
+- The draft RPC is executable by `service_role` only; checks confirmed `anon` and `authenticated` cannot execute it. Client SELECT policies expose only non-draft contracts, versions/signatures for non-draft contracts, and events explicitly marked client-visible.
+- `prisma validate` and `prisma generate` pass without `DIRECT_URL`, using a local-only schema-generation URL. Actual database/migration commands still require a real `DIRECT_URL`.
+- `tsc --noEmit` and repository-wide ESLint pass. ESLint reports four existing warnings in the two sample Supabase Edge Functions; there are no lint errors.
+- The isolated Next.js production build and Vercel Preview deployment both completed successfully. The Preview is built from `feat/contract-management-foundation`; no production deployment or promotion was performed.
+- Historical client projects already marked `active` are preserved. New client project conversion creates `draft` projects, and automatic contract drafting is restricted to those draft records.
 
 ## Explicitly out of scope for the foundation
 
